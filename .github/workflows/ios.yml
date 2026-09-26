@@ -4,7 +4,7 @@ on:
   pull_request:
   workflow_dispatch:
 concurrency:
-  group: ios-v3-${{ github.ref }}
+  group: ios-v4-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build-test:
@@ -31,3 +31,19 @@ jobs:
           name: xcresult
           path: build/
           retention-days: 5
+
+  screenshots:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: Tools/ci_select_xcode.sh
+      - name: Capture screenshots
+        run: Tools/ci_screenshots.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: build/screenshots/
+          retention-days: 14

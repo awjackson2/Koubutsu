@@ -63,14 +63,21 @@ final class AppModel {
         renderer = SampleBufferRenderer()
         pipelineMetrics = PipelineMetrics(clock: clock)
         pipeline = FramePipeline(renderer: renderer, metrics: pipelineMetrics, clock: clock)
-        let initialSettings = settingsStore.load()
+        let options = LaunchOptions.current
+        var initialSettings = settingsStore.load()
+        options.apply(to: &initialSettings)
         processingTap = SampledFrameTap(rate: initialSettings.ocrRate.rawValue, metrics: pipelineMetrics)
         pipeline.setProcessingTap(processingTap)
         ocrWorker = OCRWorker(service: ocrService, tap: processingTap, metrics: pipelineMetrics, clock: clock,
                               configuration: initialSettings.ocrConfiguration)
-        let appleTranslation = AppleTranslationService()
-        translation = TranslationController(service: appleTranslation, metrics: pipelineMetrics, clock: clock,
-                                            resetService: { await appleTranslation.reset() })
+        if options.demoTranslator {
+            translation = TranslationController(service: DemoTranslationService(), metrics: pipelineMetrics,
+                                                clock: clock)
+        } else {
+            let appleTranslation = AppleTranslationService()
+            translation = TranslationController(service: appleTranslation, metrics: pipelineMetrics, clock: clock,
+                                                resetService: { await appleTranslation.reset() })
+        }
         settings = initialSettings
         applySettings()
         refreshMedia()
