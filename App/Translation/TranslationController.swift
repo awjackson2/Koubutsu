@@ -14,11 +14,16 @@ struct DisplayedText: Identifiable, Hashable {
 
     var stable: StableText
     var status: Status
+    /// English of this block's previous text, shown while its current text translates (no flash of Japanese).
+    var previousTranslation: String?
     var id: UUID { stable.trackID }
 
     var translation: String? {
         if case .translated(let text, _, _) = status { text } else { nil }
     }
+
+    /// What to show over the block right now.
+    var visibleTranslation: String? { translation ?? previousTranslation }
 }
 
 /// Main-actor state machine from OCR results to displayed translations:
@@ -119,9 +124,14 @@ final class TranslationController {
             switch event {
             case .stabilized(let stable):
                 history.record(stable)
-                upsert(DisplayedText(stable: stable, status: .translating))
+                let carried = displayed.first { $0.id == stable.trackID }?.visibleTranslation
+                upsert(DisplayedText(stable: stable, status: .translating, previousTranslation: carried))
                 translate(stable)
-            case .removed(let trackID), .invalidated(let trackID):
+            case .invalidated:
+                // The block's text changed; its new text is stabilized in the same result (instant defaults)
+                // and replaces the entry, keeping the old English visible until the new one arrives.
+                break
+            case .removed(let trackID):
                 displayed.removeAll { $0.id == trackID }
             }
         }

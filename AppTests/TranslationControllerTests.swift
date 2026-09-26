@@ -51,25 +51,28 @@ struct TranslationControllerTests {
         #expect(translator.calls.load(ordering: .relaxed) == 1)
         #expect(controller.history.entries.map(\.source) == ["鍵が必要です"])
         #expect(controller.history.entries.first?.translation == "You need a key.")
-        #expect(metrics.snapshot().duplicateTextDetections == 8)
+        #expect(metrics.snapshot().duplicateTextDetections == 9)
         #expect(metrics.snapshot().captureToDisplayLatency.count == 1)
     }
 
-    @Test func typewriterTranslatesFinalTextOnly() async {
-        let translator = TableTranslator(["ここから先は": "From here on"])
+    @Test func firstReadingShowsEnglishAndChangesUpdateIt() async {
+        let translator = TableTranslator(["ここから": "From here", "ここから先は危険だ": "It's dangerous ahead"])
         let controller = TranslationController(service: translator, metrics: PipelineMetrics(clock: AppleHostClock()),
                                                clock: AppleHostClock())
         await controller.refreshAvailability()
-        let full = "ここから先は"
-        var t = 0.0
-        for n in 1...full.count {
-            controller.process(ocr(String(full.prefix(n)), at: t))
-            t += 0.2
+        controller.process(ocr("ここから", at: 0))
+        #expect(controller.displayed.map(\.stable.text) == ["ここから"])
+        let first = await waitUntil(timeout: 5) { controller.displayed.first?.translation == "From here" }
+        #expect(first)
+        // Typewriter reveal continues: same block, new text; the old English stays up until the new one lands.
+        controller.process(ocr("ここから先は危険だ", at: 0.1))
+        #expect(controller.displayed.count == 1)
+        #expect(controller.displayed.first?.visibleTranslation == "From here")
+        let updated = await waitUntil(timeout: 5) {
+            controller.displayed.first?.translation == "It's dangerous ahead"
         }
-        controller.process(ocr(full, at: t))
-        _ = await waitUntil(timeout: 5) { controller.displayed.first?.translation != nil }
-        #expect(controller.displayed.map(\.stable.text) == [full])
-        #expect(translator.calls.load(ordering: .relaxed) == 1)
+        #expect(updated)
+        #expect(controller.history.entries.map(\.source) == ["ここから先は危険だ"])
     }
 
     @Test func mediaTimeGoingBackwardsClearsTheScreen() async {
@@ -81,7 +84,7 @@ struct TranslationControllerTests {
         #expect(!controller.displayed.isEmpty)
         // Loop or seek backwards: what was on screen is gone.
         controller.process(ocr("扉が開いた", at: 2))
-        #expect(controller.displayed.isEmpty)
+        #expect(controller.displayed.map(\.stable.text) == ["扉が開いた"])
     }
 
     @Test func notInstalledShowsDownloadState() async {

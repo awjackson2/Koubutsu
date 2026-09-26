@@ -31,7 +31,7 @@ for t in $TIMES; do
   # Play 6 s from t then pause; the paused frame keeps being read (still-frame re-delivery). Vision's
   # first request on the simulator loads models for up to ~2 minutes, so capture late.
   xcrun simctl launch "$UDID" "$BUNDLE" --reset-settings --select-video="$NAME" --start-at="$t" \
-    --pause-after=6 --display-mode=panelAndOverlay --show-boxes --show-debug > /dev/null
+    --pause-after=6 --placeholder-translator --display-mode=overlay --show-debug > /dev/null
   sleep 150
   xcrun simctl io "$UDID" screenshot "build/footage-screenshots/${NAME}_at${t}s.png" > /dev/null
   echo "captured ${NAME} at ${t}s"

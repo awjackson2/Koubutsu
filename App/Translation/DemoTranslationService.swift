@@ -41,9 +41,35 @@ struct DemoTranslationService: TranslationService {
     }
 }
 
+/// Layout stand-in for footage screenshots on the simulator (no translation models there), enabled with
+/// `--placeholder-translator`. Returns placeholder English about as long as a real translation of the
+/// Japanese (≈2 Latin characters per Japanese character) so replace-in-place geometry and font fitting can be
+/// checked on real footage. Every result starts with "[EN]" so it can never be mistaken for a translation.
+struct PlaceholderTranslationService: TranslationService {
+    let providerName = "Placeholder (layout check)"
+    let sendsDataOffDevice = false
+    let usesContext = false
+
+    private static let words = ["english", "text", "goes", "here", "in", "place", "of", "the", "japanese", "line"]
+
+    func availability(source: String, target: String) async -> TranslationAvailability { .installed }
+
+    func translate(_ request: TranslationRequest) async throws(TranslationError) -> String {
+        let target = max(4, TextNormalizer.key(request.text).count * 2)
+        var out = "[EN]"
+        var index = 0
+        while out.count < target {
+            out += " " + Self.words[index % Self.words.count]
+            index += 1
+        }
+        return out
+    }
+}
+
 /// Launch arguments for automation (CI screenshots, UI checks).
 struct LaunchOptions {
     var demoTranslator = false
+    var placeholderTranslator = false
     var resetSettings = false
     /// Select the first media item whose name contains this text (Video mode automation).
     var selectVideo: String?
@@ -61,6 +87,7 @@ struct LaunchOptions {
         for arg in arguments {
             switch arg {
             case "--demo-translator": demoTranslator = true
+            case "--placeholder-translator": placeholderTranslator = true
             case "--reset-settings": resetSettings = true
             case "--show-boxes": showBoxes = true
             case "--hide-debug": showDebug = false

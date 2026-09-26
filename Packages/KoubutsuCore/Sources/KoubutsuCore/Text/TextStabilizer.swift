@@ -52,9 +52,9 @@ public struct TrackedBlock: Sendable, Hashable, Identifiable {
 
 public struct StabilizerConfiguration: Sendable, Hashable {
     /// Text must stay unchanged for at least this long…
-    public var minimumStableDuration: Double = 0.15
+    public var minimumStableDuration: Double = 0
     /// …and be seen in at least this many OCR results.
-    public var minimumObservations: Int = 2
+    public var minimumObservations: Int = 1
     /// Boxes overlapping at least this much (IoU) are the same block.
     public var matchIoU: Double = 0.2
     /// Or: boxes whose centers are this close (normalized) with similar text.

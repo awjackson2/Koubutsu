@@ -5,14 +5,15 @@ import Testing
 struct SettingsTests {
     @Test func defaults() {
         let s = AppSettings()
-        #expect(s.ocrRate == .fps5)
+        #expect(s.ocrRate == .fps10)
+        #expect(s.displayMode == .overlay)
         #expect(s.ocrConfiguration.languages == ["ja-JP"])
         #expect(s.ocrConfiguration.regionOfInterest == nil)
     }
 
     @Test func roundTrip() throws {
         var s = AppSettings()
-        s.ocrRate = .fps10
+        s.ocrRate = .fps15
         s.regionOfInterestMode = .dialogue
         s.showOCRBoxes = true
         let data = try JSONEncoder().encode(s)
@@ -24,7 +25,7 @@ struct SettingsTests {
     @Test func toleratesMissingAndUnknownValues() throws {
         let json = #"{"ocrRate": 7, "showOCRBoxes": true, "futureSetting": 1}"#
         let decoded = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
-        #expect(decoded.ocrRate == .fps5)
+        #expect(decoded.ocrRate == .fps10)
         #expect(decoded.showOCRBoxes)
         #expect(decoded.autoSwitchToCapture)
     }

@@ -1,7 +1,7 @@
 import KoubutsuCore
 import SwiftUI
 
-/// Draws over the video: OCR boxes (debug) and translated text placed over the Japanese it translates.
+/// Draws over the video: OCR boxes (debug) and English replacing the Japanese it translates, in place.
 /// All geometry comes from `CoordinateMapper` / `OverlayLayout`; this view only renders.
 struct VideoOverlayView: View {
     let sourceSize: PixelSize?
@@ -49,43 +49,27 @@ struct VideoOverlayView: View {
         }
     }
 
+    /// Replace in place: an opaque box over each Japanese block with the English fitted inside it.
     private func translations(mapper: CoordinateMapper) -> some View {
-        let translated = displayed.filter { $0.translation != nil }
-        let byID = Dictionary(uniqueKeysWithValues: translated.map { ($0.id, $0) })
-        let items = translated.map {
+        let shown = displayed.filter { $0.visibleTranslation != nil }
+        let byID = Dictionary(uniqueKeysWithValues: shown.map { ($0.id, $0) })
+        let items = shown.map {
             OverlayItem(id: $0.id, sourceBox: $0.stable.boundingBox, lineCount: max(1, $0.stable.lines.count))
         }
-        let placements = layout.place(items, mapper: mapper) { id in
-            guard let item = byID[id], let text = item.translation else { return 1 }
-            return Self.estimatedLines(text: text, box: mapper.viewRect(for: item.stable.boundingBox),
-                                       lineCount: max(1, item.stable.lines.count), layout: layout)
-        }
+        let placements = layout.place(items, mapper: mapper) { id in byID[id]?.visibleTranslation?.count ?? 1 }
         return ForEach(placements, id: \.id) { placement in
-            if let text = byID[placement.id]?.translation {
+            if let text = byID[placement.id]?.visibleTranslation {
                 Text(text)
                     .font(.system(size: placement.fontSize, weight: .semibold))
                     .foregroundStyle(.white)
-                    .shadow(color: .black, radius: 1)
-                    .padding(.horizontal, layout.padding)
-                    .padding(.vertical, layout.padding / 2)
-                    .frame(width: placement.frame.width, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(minHeight: placement.frame.height, alignment: .topLeading)
-                    .background(Color.black.opacity(0.78), in: RoundedRectangle(cornerRadius: 6))
+                    .lineSpacing(0)
+                    .minimumScaleFactor(0.6)
+                    .padding(layout.padding)
+                    .frame(width: placement.frame.width, height: placement.frame.height, alignment: .leading)
+                    .background(Color(white: 0.06).opacity(0.94), in: RoundedRectangle(cornerRadius: 4))
                     .offset(x: placement.frame.x, y: placement.frame.y)
-                    .transition(.opacity)
             }
         }
-        .animation(.easeOut(duration: 0.15), value: placements.map(\.id))
-    }
-
-    /// Rough wrapped-line estimate for layout (average Latin glyph ≈ 0.52 em).
-    static func estimatedLines(text: String, box: PlaneRect, lineCount: Int, layout: OverlayLayout) -> Int {
-        let font = min(max(box.height / Double(lineCount) * layout.fontScale, layout.fontSizeRange.lowerBound),
-                       layout.fontSizeRange.upperBound)
-        let width = max(box.width, layout.minimumWidth - 2 * layout.padding)
-        let perLine = max(1, width / (font * 0.52))
-        return max(1, Int((Double(text.count) / perLine).rounded(.up)))
     }
 }
 

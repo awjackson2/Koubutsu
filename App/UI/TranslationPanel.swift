@@ -48,7 +48,11 @@ struct TranslationPanel: View {
         Group {
             switch item.status {
             case .translating:
-                Text("…").foregroundStyle(.secondary)
+                if let previous = item.previousTranslation {
+                    Text(previous).font(.title3).foregroundStyle(.secondary)
+                } else {
+                    Text("…").foregroundStyle(.secondary)
+                }
             case .translated(let text, let fromCache, let latency):
                 HStack(alignment: .firstTextBaseline) {
                     Text(text).font(.title3)

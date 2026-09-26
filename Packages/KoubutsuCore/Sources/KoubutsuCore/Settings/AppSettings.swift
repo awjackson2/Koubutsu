@@ -25,10 +25,10 @@ public struct AppSettings: Sendable, Hashable, Codable {
 
     public var sourceLanguage: String = "ja"
     public var targetLanguage: String = "en"
-    public var ocrRate: OCRRate = .fps5
+    public var ocrRate: OCRRate = .fps10
     public var ocrQuality: OCRQuality = .accurate
     public var translationMode: TranslationMode = .lowLatency
-    public var displayMode: DisplayMode = .panel
+    public var displayMode: DisplayMode = .overlay
     public var showOriginalText: Bool = true
     public var showTranslation: Bool = true
     public var showOCRBoxes: Bool = false

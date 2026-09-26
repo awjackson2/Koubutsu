@@ -20,9 +20,35 @@ private func stabilized(_ events: [TextEvent]) -> [StableText] {
     events.compactMap { if case .stabilized(let s) = $0 { s } else { nil } }
 }
 
+/// The pre-7.6 stability window: two readings over at least 0.15 s.
+private let windowed: StabilizerConfiguration = {
+    var c = StabilizerConfiguration()
+    c.minimumStableDuration = 0.15
+    c.minimumObservations = 2
+    return c
+}()
+
 struct TextStabilizerTests {
-    @Test func stableTextEmittedOnceAfterWindow() {
+    @Test func defaultEmitsOnFirstReading() {
         var s = TextStabilizer()
+        #expect(stabilized(s.process(result(at: 0.0, [("鍵が必要です", dialogueBox)]))).map(\.text) == ["鍵が必要です"])
+        #expect(stabilized(s.process(result(at: 0.1, [("鍵が必要です", dialogueBox)]))).isEmpty)
+    }
+
+    @Test func defaultFollowsTypewriterRevealOnSameTrack() {
+        var s = TextStabilizer()
+        let first = stabilized(s.process(result(at: 0.0, [("ここから", dialogueBox)])))
+        let events = s.process(result(at: 0.1, [("ここから先は危険だ", dialogueBox)]))
+        #expect(events.first == .invalidated(trackID: first[0].trackID))
+        let second = stabilized(events)
+        #expect(second.map(\.text) == ["ここから先は危険だ"])
+        #expect(second.first?.trackID == first.first?.trackID)
+        // A one-character misread of the same text is noise, not a change.
+        #expect(s.process(result(at: 0.2, [("ここから先わ危険だ", dialogueBox)])).isEmpty)
+    }
+
+    @Test func stableTextEmittedOnceAfterWindow() {
+        var s = TextStabilizer(configuration: windowed)
         #expect(stabilized(s.process(result(at: 0.0, [("鍵が必要です", dialogueBox)]))).isEmpty)
         let second = stabilized(s.process(result(at: 0.2, [("鍵が必要です", dialogueBox)])))
         #expect(second.map(\.text) == ["鍵が必要です"])
@@ -34,7 +60,7 @@ struct TextStabilizerTests {
     }
 
     @Test func typewriterRevealEmitsOnlyFinalText() {
-        var s = TextStabilizer()
+        var s = TextStabilizer(configuration: windowed)
         let full = "ここから先は危険だ"
         var emitted: [String] = []
         // Reveal one character per OCR sample (5 FPS), then hold.
@@ -51,7 +77,7 @@ struct TextStabilizerTests {
     }
 
     @Test func ocrFlickerDoesNotRetrigger() {
-        var s = TextStabilizer()
+        var s = TextStabilizer(configuration: windowed)
         _ = s.process(result(at: 0.0, [("この先には強い敵がいる", dialogueBox)]))
         #expect(stabilized(s.process(result(at: 0.2, [("この先には強い敵がいる", dialogueBox)]))).count == 1)
         // One misread character.
@@ -60,7 +86,7 @@ struct TextStabilizerTests {
     }
 
     @Test func newDialoguePageInSameBoxEmitsAgain() {
-        var s = TextStabilizer()
+        var s = TextStabilizer(configuration: windowed)
         _ = s.process(result(at: 0.0, [("鍵が必要です", dialogueBox)]))
         let first = stabilized(s.process(result(at: 0.2, [("鍵が必要です", dialogueBox)])))
         let change = s.process(result(at: 0.4, [("扉が開いた", dialogueBox)]))
@@ -71,7 +97,7 @@ struct TextStabilizerTests {
     }
 
     @Test func independentBlocksTrackedSeparately() {
-        var s = TextStabilizer()
+        var s = TextStabilizer(configuration: windowed)
         _ = s.process(result(at: 0.0, [("鍵が必要です", dialogueBox), ("セーブ中", otherBox)]))
         let events = stabilized(s.process(result(at: 0.2, [("鍵が必要です", dialogueBox), ("セーブ中", otherBox)])))
         #expect(Set(events.map(\.text)) == ["鍵が必要です", "セーブ中"])
@@ -79,7 +105,7 @@ struct TextStabilizerTests {
     }
 
     @Test func removedAfterDisappearing() {
-        var s = TextStabilizer()
+        var s = TextStabilizer(configuration: windowed)
         _ = s.process(result(at: 0.0, [("鍵が必要です", dialogueBox)]))
         _ = s.process(result(at: 0.2, [("鍵が必要です", dialogueBox)]))
         #expect(s.process(result(at: 0.6, [])).isEmpty)
@@ -90,7 +116,7 @@ struct TextStabilizerTests {
     }
 
     @Test func lowConfidenceAndDecorationsIgnored() {
-        var s = TextStabilizer()
+        var s = TextStabilizer(configuration: windowed)
         _ = s.process(result(at: 0.0, [("鍵", dialogueBox)], confidence: 0.1))
         #expect(s.tracks.isEmpty)
         _ = s.process(result(at: 0.2, [("▼", dialogueBox)]))
@@ -98,7 +124,7 @@ struct TextStabilizerTests {
     }
 
     @Test func multiLineDialogueBecomesOneStableText() {
-        var s = TextStabilizer()
+        var s = TextStabilizer(configuration: windowed)
         let l1 = NormalizedRect(x: 0.12, y: 0.731, width: 0.4, height: 0.059)
         let l2 = NormalizedRect(x: 0.12, y: 0.824, width: 0.2, height: 0.059)
         _ = s.process(result(at: 0.0, [("この先には強い敵がいる。", l1), ("鍵が必要です", l2)]))

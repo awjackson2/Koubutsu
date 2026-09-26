@@ -76,6 +76,9 @@ final class AppModel {
         if options.demoTranslator {
             translation = TranslationController(service: DemoTranslationService(), metrics: pipelineMetrics,
                                                 clock: clock)
+        } else if options.placeholderTranslator {
+            translation = TranslationController(service: PlaceholderTranslationService(), metrics: pipelineMetrics,
+                                                clock: clock)
         } else {
             let appleTranslation = AppleTranslationService()
             translation = TranslationController(service: appleTranslation, metrics: pipelineMetrics, clock: clock,

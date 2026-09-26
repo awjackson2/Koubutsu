@@ -25,7 +25,8 @@ public struct DialogueEntry: Sendable, Hashable, Identifiable {
     }
 }
 
-/// Chronological, bounded log of stable dialogue. Consecutive repeats of the same text are merged.
+/// Chronological, bounded log of stable dialogue. Consecutive repeats of the same text are merged, and a
+/// block that grows in place (typewriter reveal) replaces its own previous, shorter entry.
 public struct DialogueHistory: Sendable {
     public let capacity: Int
     public private(set) var entries: [DialogueEntry] = []
@@ -39,6 +40,11 @@ public struct DialogueHistory: Sendable {
     @discardableResult
     public mutating func record(_ stable: StableText, date: Date = Date()) -> Bool {
         if let last = entries.last, last.id == stable.id || last.source == stable.text { return false }
+        if let index = entries.lastIndex(where: { $0.trackID == stable.trackID }),
+           TextNormalizer.isGrowth(from: TextNormalizer.key(entries[index].source), to: stable.key) {
+            entries[index] = DialogueEntry(stable: stable, date: date)
+            return true
+        }
         entries.append(DialogueEntry(stable: stable, date: date))
         if entries.count > capacity { entries.removeFirst(entries.count - capacity) }
         return true

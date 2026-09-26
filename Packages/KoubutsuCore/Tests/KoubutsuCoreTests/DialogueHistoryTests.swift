@@ -11,6 +11,21 @@ struct DialogueHistoryTests {
         #expect(history.entries.map(\.source) == ["気をつけて。", "先に進もう。", "扉が開いた"])
     }
 
+    @Test func typewriterGrowthReplacesItsOwnEntry() {
+        var history = DialogueHistory()
+        let track = UUID()
+        func revealed(_ text: String) -> StableText {
+            var s = stable(text)
+            s.trackID = track
+            return s
+        }
+        history.record(stable("前の台詞。"))
+        for text in ["ここ", "ここから", "ここから先は危険だ"] { history.record(revealed(text)) }
+        #expect(history.entries.map(\.source) == ["前の台詞。", "ここから先は危険だ"])
+        history.record(revealed("扉が開いた"))
+        #expect(history.entries.map(\.source) == ["前の台詞。", "ここから先は危険だ", "扉が開いた"])
+    }
+
     @Test func translationsAndContext() {
         var history = DialogueHistory()
         let a = stable("敵が近くにいる。"), b = stable("気をつけて。")
