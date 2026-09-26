@@ -49,7 +49,8 @@ enum ClipFrameReader {
 
         var factory = VideoFrameFactory()
         let timing = FrameTiming(sequence: 0, presentationTime: .zero, hostTime: AppleHostClock().now(), sourceSessionID: 0)
-        return try #require(factory.makeFrame(pixelBuffer: pixelBuffer, presentationTime: .zero, timing: timing))
+        let frame = factory.makeFrame(pixelBuffer: pixelBuffer, presentationTime: .zero, timing: timing)
+        return try #require(frame)
     }
 }
 

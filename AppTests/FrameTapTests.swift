@@ -54,6 +54,7 @@ struct FrameTapTests {
         #expect(metrics.snapshot().totalFramesDisplayed == 3)
         #expect(await tap.next()?.timing.sequence == 2)
         pipeline.setProcessingTap(nil)
-        #expect(await tap.next() == nil)
+        let closed = await tap.next() == nil
+        #expect(closed)
     }
 }
