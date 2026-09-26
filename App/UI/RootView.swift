@@ -36,10 +36,14 @@ struct RootView: View {
                     .background(Color(white: 0.05))
             }
             if model.settings.showDebugStatistics {
-                RecognizedTextPanel(result: model.latestOCR, status: model.ocrStatus)
-                    .padding(.horizontal)
-                    .padding(.vertical, 4)
-                    .background(Color(white: 0.08))
+                // Fixed height: the video's size must not depend on how many lines OCR returned.
+                ScrollView {
+                    RecognizedTextPanel(result: model.latestOCR, status: model.ocrStatus)
+                        .padding(.horizontal)
+                        .padding(.vertical, 4)
+                }
+                .frame(height: 140)
+                .background(Color(white: 0.08))
                 DebugPanel(model: model)
                     .padding(.horizontal)
                     .padding(.vertical, 6)

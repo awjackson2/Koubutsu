@@ -56,3 +56,4 @@ Line format:
 - **Phase 7.6.1** (2026-09-26) — [log](phase_7.6.1_log.md) — Replacement boxes are opaque, keep words intact and follow their text.
 - **Phase 7.7.0** (2026-09-26) — [plan](phase_7.7.0_plan.md) · [log](phase_7.7.0_log.md) — CI builds an iPad IPA to sign and sideload from Linux.
 - **Phase 7.6.2** (2026-09-26) — [plan](phase_7.6.2_plan.md) · [log](phase_7.6.2_log.md) — Only Japanese is replaced, list items stay separate, shown English changes only on confirmed text.
+- **Phase 7.6.3** (2026-09-26) — [plan](phase_7.6.3_plan.md) · [log](phase_7.6.3_log.md) — Boxes widen into free space instead of covering neighbours; video no longer resizes with the OCR list.

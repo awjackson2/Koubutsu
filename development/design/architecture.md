@@ -1,6 +1,6 @@
 # Architecture
 
-Last synced: Phase 7.6.2 (2026-09-26)
+Last synced: Phase 7.6.3 (2026-09-26)
 
 ## Layers
 
@@ -73,6 +73,13 @@ Invariants:
 - Text in free space and growth of shown text (typewriter) are emitted on the first reading. Different text
   on a shown track, or a new block covering ≥50% of its area with a shown block, needs two readings.
 - A track is removed after 0.6 s and at least two consecutive missed OCR results.
+
+## Replacement box layout
+
+`OverlayLayout.place`: box = Japanese block + 4 pt padding, font up to 70% of the Japanese line height. English
+that would need less than 60% of that font widens the box rightward to the next Japanese on the same rows (or the
+video edge); then the font goes down to 9 pt; then the box grows downward to the next Japanese below. Boxes never
+cover other blocks' text. The debug OCR list sits in a fixed-height scroll view so the video never resizes.
 
 ## Coordinate convention
 

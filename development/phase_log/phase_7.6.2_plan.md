@@ -3,7 +3,7 @@
 ## Phase
 - **Number:** 7.6.2
 - **Name:** Text stability: Japanese-only blocks, list items, confirmed replacements
-- **Status:** Completed
+- **Status:** Planned
 - **Date drafted:** 2026-09-26
 
 ## Purpose
