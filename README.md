@@ -1,5 +1,7 @@
 # Koubutsu
 
+<p align="center"><img src="docs/art/cover.png" width="420" alt="Koubutsu cover art"></p>
+
 An iPad app that turns the iPad into a real-time translated display for a Nintendo Switch 2 running
 Japanese games. Video (and audio) arrive over a USB-C UVC/UAC capture adapter; the app shows the game with
 minimal latency, recognizes Japanese text with Apple Vision, translates it on device with Apple Translation,
