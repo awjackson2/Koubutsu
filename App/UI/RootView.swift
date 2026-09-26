@@ -10,33 +10,84 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        let translationController = model.translation
-        VStack(spacing: 0) {
-            VideoDisplayView(renderer: model.renderer)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black)
-                .overlay {
-                    VideoOverlayView(sourceSize: model.format?.size ?? model.latestOCR?.frameSize,
-                                     ocr: model.latestOCR,
-                                     displayed: translationController.displayed,
-                                     showBoxes: model.settings.showOCRBoxes,
-                                     showTranslations: model.settings.displayMode != .panel
-                                         && model.settings.showTranslation)
+        GeometryReader { geometry in
+            // The stage depends only on the window: chrome below overlays it and never resizes the video.
+            let stage = VideoStageLayout.stage(containerWidth: geometry.size.width,
+                                               containerHeight: geometry.size.height)
+            ZStack(alignment: .topLeading) {
+                Color.black
+                videoStage
+                    .frame(width: stage.width, height: stage.height)
+                    .offset(x: stage.x, y: stage.y)
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    chrome
                 }
-                .overlay(alignment: .center) { sourceMessage }
+                .frame(width: geometry.size.width, height: geometry.size.height)
+            }
+        }
+        .background(Color.black)
+        .ignoresSafeArea(edges: .top)
+        .preferredColorScheme(.dark)
+        .persistentSystemOverlays(.hidden)
+        .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.movie, .mpeg4Movie, .quickTimeMovie]) { result in
+            if case .success(let url) = result {
+                Task { await model.importVideo(from: url) }
+            }
+        }
+        .translationTask(model.translation.downloadConfiguration) { [translationController = model.translation] session in
+            let failure = await TranslationController.prepareDownload(UncheckedSendableBox(session))
+            await translationController.downloadFinished(error: failure)
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(settings: $model.settings)
+        }
+        .task {
+            await model.start()
+            await model.applyLaunchPlayback()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            Task { await model.scenePhaseChanged(phase) }
+        }
+    }
+
+    private var videoStage: some View {
+        let translationController = model.translation
+        return VideoDisplayView(renderer: model.renderer)
+            .background(Color.black)
+            .overlay {
+                VideoOverlayView(sourceSize: model.format?.size ?? model.latestOCR?.frameSize,
+                                 ocr: model.latestOCR,
+                                 displayed: translationController.displayed,
+                                 showBoxes: model.settings.showOCRBoxes,
+                                 showTranslations: model.settings.displayMode != .panel
+                                     && model.settings.showTranslation)
+            }
+            .overlay(alignment: .center) { sourceMessage }
+    }
+
+    /// Bars and panels, bottom-anchored over the space below the stage. Panels have fixed heights.
+    private var chrome: some View {
+        let translationController = model.translation
+        return VStack(spacing: 0) {
             VideoTransportBar(model: model, showingImporter: $showingImporter)
-            if model.settings.displayMode != .overlay || translationController.statusMessage != nil {
-                TranslationPanel(controller: translationController,
-                                 showOriginal: model.settings.showOriginalText,
-                                 showTranslation: model.settings.showTranslation
-                                     && model.settings.displayMode != .overlay)
+            if model.settings.displayMode != .overlay {
+                ScrollView {
+                    TranslationPanel(controller: translationController,
+                                     showOriginal: model.settings.showOriginalText,
+                                     showTranslation: model.settings.showTranslation)
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                }
+                .frame(height: 150)
+                .background(Color(white: 0.05))
+            } else if translationController.statusMessage != nil {
+                TranslationPanel(controller: translationController, showOriginal: false, showTranslation: false)
                     .padding(.horizontal)
                     .padding(.vertical, 8)
-                    .frame(minHeight: model.settings.displayMode == .overlay ? 0 : 110, alignment: .top)
                     .background(Color(white: 0.05))
             }
             if model.settings.showDebugStatistics {
-                // Fixed height: the video's size must not depend on how many lines OCR returned.
                 ScrollView {
                     RecognizedTextPanel(result: model.latestOCR, status: model.ocrStatus)
                         .padding(.horizontal)
@@ -50,29 +101,6 @@ struct RootView: View {
                     .background(Color(white: 0.08))
             }
             ControlBar(model: model, showingImporter: $showingImporter, showingSettings: $showingSettings)
-        }
-        .background(Color.black)
-        .ignoresSafeArea(edges: .top)
-        .preferredColorScheme(.dark)
-        .persistentSystemOverlays(.hidden)
-        .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.movie, .mpeg4Movie, .quickTimeMovie]) { result in
-            if case .success(let url) = result {
-                Task { await model.importVideo(from: url) }
-            }
-        }
-        .translationTask(translationController.downloadConfiguration) { session in
-            let failure = await TranslationController.prepareDownload(UncheckedSendableBox(session))
-            await translationController.downloadFinished(error: failure)
-        }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView(settings: $model.settings)
-        }
-        .task {
-            await model.start()
-            await model.applyLaunchPlayback()
-        }
-        .onChange(of: scenePhase) { _, phase in
-            Task { await model.scenePhaseChanged(phase) }
         }
     }
 

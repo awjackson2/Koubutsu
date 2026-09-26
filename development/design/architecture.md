@@ -1,6 +1,6 @@
 # Architecture
 
-Last synced: Phase 7.6.3 (2026-09-26)
+Last synced: Phase 7.6.4 (2026-09-26)
 
 ## Layers
 
@@ -79,7 +79,13 @@ Invariants:
 `OverlayLayout.place`: box = Japanese block + 4 pt padding, font up to 70% of the Japanese line height. English
 that would need less than 60% of that font widens the box rightward to the next Japanese on the same rows (or the
 video edge); then the font goes down to 9 pt; then the box grows downward to the next Japanese below. Boxes never
-cover other blocks' text. The debug OCR list sits in a fixed-height scroll view so the video never resizes.
+cover other blocks' text.
+
+## Screen layout
+
+The video stage (`VideoStageLayout`) is a full-width, top-aligned 16:9 rect that depends only on the window size.
+Transport bar, panels and control bar are a bottom-anchored overlay with fixed-height panels; showing or hiding
+them never resizes or moves the video or its replacement boxes.
 
 ## Coordinate convention
 
