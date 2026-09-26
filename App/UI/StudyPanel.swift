@@ -5,6 +5,9 @@ import SwiftUI
 struct StudyPanel: View {
     let session: StudySession
     let store: (any DictionaryStore)?
+    let bank: WordBankStore
+    /// Game or video name saved with words.
+    let source: String?
     let done: () -> Void
     @State private var card: WordCardContent?
 
@@ -78,7 +81,10 @@ struct StudyPanel: View {
             }
         }
         .sheet(item: $card) { content in
-            WordCardView(content: content, store: store)
+            WordCardView(content: content, store: store, onSave: { result in
+                bank.save(result, sentence: content.sentence, translation: content.sentenceTranslation, source: source,
+                          mediaTime: session.frameTiming?.presentationTime.seconds, image: session.lineCrop())
+            }, isSaved: { bank.isSaved($0) })
                 .presentationDetents([.medium, .large])
         }
         .background(Color(white: 0.07))

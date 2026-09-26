@@ -49,6 +49,7 @@ final class AppModel {
     let processingTap: SampledFrameTap
     let ocrService = VisionOCRService()
     let dictionary = DictionaryProvider()
+    let wordBank = WordBankStore()
     let translation: TranslationController
     let performance = PerformanceMonitor()
     private(set) var benchmarkReport: String?

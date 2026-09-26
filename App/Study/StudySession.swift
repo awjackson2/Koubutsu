@@ -119,6 +119,18 @@ final class StudySession {
         translateTask?.cancel()
     }
 
+    /// The selected line (with some margin) cut out of the frozen frame, for the word bank.
+    func lineCrop() -> CGImage? {
+        guard let image, let span = spans.first,
+              let line = observations.first(where: { $0.id == span.observationID }) else { return nil }
+        let box = line.boundingBox
+        let rect = NormalizedRect(x: box.x - box.height * 0.8, y: box.y - box.height * 0.6,
+                                  width: box.width + box.height * 1.6, height: box.height * 2.2).clamped
+        let width = Double(image.width), height = Double(image.height)
+        return image.cropping(to: CGRect(x: rect.x * width, y: rect.y * height, width: rect.width * width,
+                                         height: rect.height * height).integral)
+    }
+
     /// Character boxes of the current selection, per line.
     func selectionBoxes() -> [NormalizedRect] {
         spans.compactMap { span in

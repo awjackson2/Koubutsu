@@ -9,6 +9,8 @@ struct RootView: View {
     @State private var showingImporter = false
     @State private var showingSettings = false
     @State private var showingRecentLines = false
+    @State private var showingWordBank = false
+    @State private var showingReview = false
     /// Full screen hides every bar and panel; the video stage itself never changes (7.6.4).
     @State private var isFullScreen = LaunchOptions.current.fullScreen
     /// In full screen, controls revealed by a tap (auto-hidden).
@@ -72,6 +74,17 @@ struct RootView: View {
         .sheet(isPresented: $showingRecentLines) {
             RecentLinesView(controller: model.translation)
         }
+        .sheet(isPresented: $showingWordBank) {
+            WordBankView(bank: model.wordBank, store: model.dictionary.store) {
+                Task {
+                    try? await Task.sleep(for: .milliseconds(400))
+                    showingReview = true
+                }
+            }
+        }
+        .sheet(isPresented: $showingReview) {
+            ReviewView(bank: model.wordBank)
+        }
         .task {
             await model.start()
             await model.applyLaunchPlayback()
@@ -90,6 +103,8 @@ struct RootView: View {
             toggleFullScreen: { toggleFullScreen() },
             toggleEnglish: { model.settings.showTranslation.toggle() },
             toggleStudy: { Task { await toggleStudy() } },
+            showWordBank: { showingWordBank = true },
+            showReview: { showingReview = true },
             showRecentLines: { showingRecentLines = true },
             showSettings: { showingSettings = true })
     }
@@ -175,7 +190,8 @@ struct RootView: View {
         let translationController = model.translation
         return VStack(spacing: 0) {
             if study.isActive {
-                StudyPanel(session: study, store: model.dictionary.store) { Task { await toggleStudy() } }
+                StudyPanel(session: study, store: model.dictionary.store, bank: model.wordBank,
+                           source: model.selection?.label) { Task { await toggleStudy() } }
             } else {
                 VideoTransportBar(model: model, showingImporter: $showingImporter)
                 if model.settings.displayMode != .overlay {
@@ -211,7 +227,8 @@ struct RootView: View {
                 }
                 ControlBar(model: model, isFullScreen: isFullScreen, showingImporter: $showingImporter,
                            showingSettings: $showingSettings, showingRecentLines: $showingRecentLines,
-                           toggleFullScreen: toggleFullScreen, toggleStudy: { Task { await toggleStudy() } })
+                           showingWordBank: $showingWordBank, toggleFullScreen: toggleFullScreen,
+                           toggleStudy: { Task { await toggleStudy() } })
             }
         }
         .simultaneousGesture(TapGesture().onEnded { scheduleChromeHide() })
@@ -234,6 +251,7 @@ private struct ControlBar: View {
     @Binding var showingImporter: Bool
     @Binding var showingSettings: Bool
     @Binding var showingRecentLines: Bool
+    @Binding var showingWordBank: Bool
     let toggleFullScreen: () -> Void
     let toggleStudy: () -> Void
 
@@ -283,6 +301,13 @@ private struct ControlBar: View {
                 Label("Study", systemImage: "book")
             }
             .help("Freeze the frame and look up words (S)")
+            Button {
+                showingWordBank = true
+            } label: {
+                let due = model.wordBank.bank.due(at: Date()).count
+                Label(due > 0 ? "\(due)" : "Words", systemImage: "rectangle.stack")
+            }
+            .help("Word bank and review (W, R)")
             Button {
                 showingRecentLines = true
             } label: {
