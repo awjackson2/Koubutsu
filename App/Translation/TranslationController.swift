@@ -28,6 +28,9 @@ struct DisplayedText: Identifiable, Hashable {
 final class TranslationController {
     private(set) var displayed: [DisplayedText] = []
     private(set) var history = DialogueHistory()
+    /// Timestamped transcript of the current video (Video mode), on the media clock.
+    private(set) var transcript = TranscriptBuilder()
+    @ObservationIgnored private var lastMediaTime: Double?
     private(set) var availability: TranslationAvailability?
     private(set) var statusMessage: String?
     /// Set to request the system language download prompt (consumed by the view's `translationTask`).
@@ -91,15 +94,30 @@ final class TranslationController {
         retryUntranslated()
     }
 
+    /// Source stopped or playback jumped: forget on-screen state; the transcript is kept but segmented.
     func reset() {
         stabilizer.reset()
         displayed.removeAll()
+        transcript.discontinuity()
+        lastMediaTime = nil
+    }
+
+    /// A different video/source starts: new transcript.
+    func clearTranscript() {
+        transcript.removeAll()
+        lastMediaTime = nil
     }
 
     func clearHistory() { history.removeAll() }
 
     /// Feeds one OCR result. Cheap: stabilization runs inline; translation runs in child tasks.
     func process(_ result: OCRResult) {
+        let mediaTime = result.frame.presentationTime.seconds
+        if let last = lastMediaTime, mediaTime < last - 1 {
+            // Media time went backwards (loop or seek): what was on screen is gone.
+            reset()
+        }
+        lastMediaTime = mediaTime
         let events = stabilizer.process(result)
         let duplicates = stabilizer.duplicateDetections - reportedDuplicates
         if duplicates > 0 {
@@ -110,10 +128,12 @@ final class TranslationController {
             switch event {
             case .stabilized(let stable):
                 history.record(stable)
+                transcript.stabilized(stable)
                 upsert(DisplayedText(stable: stable, status: .translating))
                 translate(stable)
             case .removed(let trackID), .invalidated(let trackID):
                 displayed.removeAll { $0.id == trackID }
+                transcript.ended(trackID: trackID, at: mediaTime)
             }
         }
     }
@@ -144,6 +164,7 @@ final class TranslationController {
                 let result = try await coordinator.translate(stable, sourceLanguage: source, targetLanguage: target,
                                                              quality: quality, context: context)
                 history.setTranslation(result.translation, provider: result.provider, for: stable.id)
+                transcript.translated(id: stable.id, english: result.translation)
                 if setStatus(.translated(result.translation, fromCache: result.fromCache,
                                          latency: result.translationDuration), for: stable) {
                     metrics.translationDisplayed(frameHostTime: stable.firstSeenFrame.hostTime, at: clock.now())

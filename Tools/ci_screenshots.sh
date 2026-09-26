@@ -40,6 +40,7 @@ series() { # name, launch args...
 }
 
 series panel_debug --reset-settings --demo-translator --display-mode=panel --show-boxes --show-debug
+series transcript --reset-settings --demo-translator --display-mode=panel --hide-debug --show-transcript
 series overlay --reset-settings --demo-translator --display-mode=panelAndOverlay --hide-debug
 xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
 ls -la build/screenshots

@@ -36,6 +36,8 @@ final class AppModel {
     private(set) var format: VideoFormat?
     private(set) var metrics = PipelineMetricsSnapshot()
     private(set) var latestOCR: OCRResult?
+    /// Transport state when the source is a video file (Video mode); nil for live capture.
+    private(set) var playback: PlaybackStatus?
     private(set) var ocrStatus: String?
     var errorMessage: String?
 
@@ -55,6 +57,7 @@ final class AppModel {
     private let ocrWorker: OCRWorker<VisionOCRService>
 
     private var source: (any VideoSource<VideoFrame>)?
+    private var currentMediaURL: URL?
     private var metricsTask: Task<Void, Never>?
     private var wasRunningBeforeBackground = false
     private let settingsStore = SettingsStore()
@@ -139,6 +142,14 @@ final class AppModel {
             return
         }
         errorMessage = nil
+        if case .media(let item) = selection, item.url != currentMediaURL {
+            translation.clearTranscript()
+        }
+        if case .media(let item) = selection {
+            currentMediaURL = item.url
+        } else {
+            currentMediaURL = nil
+        }
         let newSource: any VideoSource<VideoFrame>
         switch selection {
         case .media(let item): newSource = TestVideoSource(url: item.url, loops: settings.loopTestVideo)
@@ -181,6 +192,7 @@ final class AppModel {
         metricsTask = nil
         sourceState = .stopped
         format = nil
+        playback = nil
     }
 
     private func apply(_ event: VideoSourceEvent) {
@@ -249,6 +261,38 @@ final class AppModel {
         }
     }
 
+    // MARK: - Video mode (transport)
+
+    private var playbackControl: (any PlaybackControlling)? { source as? any PlaybackControlling }
+
+    var isVideoMode: Bool { playback != nil }
+
+    func togglePlayPause() async {
+        guard let control = playbackControl else { return }
+        if await control.playbackStatus().isPlaying { await control.pause() } else { await control.play() }
+        playback = await control.playbackStatus()
+    }
+
+    /// Seeks and clears on-screen OCR/translation state (the content jumps).
+    func seek(to seconds: Double) async {
+        guard let control = playbackControl else { return }
+        await control.seek(to: seconds)
+        latestOCR = nil
+        translation.reset()
+        playback = await control.playbackStatus()
+    }
+
+    func skip(by seconds: Double) async {
+        guard let current = playback else { return }
+        await seek(to: current.currentTime + seconds)
+    }
+
+    func setLooping(_ loops: Bool) async {
+        settings.loopTestVideo = loops
+        await playbackControl?.setLooping(loops)
+        playback = await playbackControl?.playbackStatus()
+    }
+
     // MARK: - Benchmark
 
     /// Runs the OCR benchmark over the bundled clip (on device: real ANE/GPU numbers).
@@ -283,6 +327,9 @@ final class AppModel {
                 guard let self else { return }
                 self.metrics = self.pipelineMetrics.snapshot()
                 self.captureAudio.refreshLevel()
+                if let control = self.playbackControl {
+                    self.playback = await control.playbackStatus()
+                }
                 tick += 1
                 if tick % 4 == 0 { await self.performance.refresh(renderer: self.renderer) }
                 try? await Task.sleep(for: .milliseconds(250))

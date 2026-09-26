@@ -45,6 +45,7 @@ struct DemoTranslationService: TranslationService {
 struct LaunchOptions {
     var demoTranslator = false
     var resetSettings = false
+    var showTranscript = false
     var displayMode: AppSettings.DisplayMode?
     var showBoxes: Bool?
     var showDebug: Bool?
@@ -56,6 +57,7 @@ struct LaunchOptions {
             switch arg {
             case "--demo-translator": demoTranslator = true
             case "--reset-settings": resetSettings = true
+            case "--show-transcript": showTranscript = true
             case "--show-boxes": showBoxes = true
             case "--hide-debug": showDebug = false
             case "--show-debug": showDebug = true

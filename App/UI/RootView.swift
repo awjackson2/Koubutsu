@@ -7,6 +7,7 @@ struct RootView: View {
     @State private var model = AppModel()
     @State private var showingImporter = false
     @State private var showingSettings = false
+    @State private var showingTranscript = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -24,6 +25,7 @@ struct RootView: View {
                                          && model.settings.showTranslation)
                 }
                 .overlay(alignment: .center) { sourceMessage }
+            VideoTransportBar(model: model, showingImporter: $showingImporter, showingTranscript: $showingTranscript)
             if model.settings.displayMode != .overlay || translationController.statusMessage != nil {
                 TranslationPanel(controller: translationController,
                                  showOriginal: model.settings.showOriginalText,
@@ -59,10 +61,16 @@ struct RootView: View {
             let failure = await TranslationController.prepareDownload(UncheckedSendableBox(session))
             await translationController.downloadFinished(error: failure)
         }
+        .sheet(isPresented: $showingTranscript) {
+            TranscriptView(model: model)
+        }
         .sheet(isPresented: $showingSettings) {
             SettingsView(settings: $model.settings)
         }
-        .task { await model.start() }
+        .task {
+            if LaunchOptions.current.showTranscript { showingTranscript = true }
+            await model.start()
+        }
         .onChange(of: scenePhase) { _, phase in
             Task { await model.scenePhaseChanged(phase) }
         }

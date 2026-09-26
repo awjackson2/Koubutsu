@@ -9,7 +9,7 @@ concurrency:
 jobs:
   screenshots:
     runs-on: macos-latest
-    timeout-minutes: 40
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode
