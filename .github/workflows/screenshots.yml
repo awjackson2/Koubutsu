@@ -1,0 +1,24 @@
+name: Screenshots
+on:
+  push:
+  workflow_dispatch:
+# Never cancelled by later pushes: every commit gets its own screenshot set.
+concurrency:
+  group: screenshots-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  screenshots:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: Tools/ci_select_xcode.sh
+      - name: Capture screenshots
+        run: Tools/ci_screenshots.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: build/screenshots/
+          retention-days: 14
