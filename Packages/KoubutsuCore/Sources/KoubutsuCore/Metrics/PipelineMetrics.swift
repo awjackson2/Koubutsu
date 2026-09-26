@@ -18,6 +18,8 @@ public struct PipelineMetricsSnapshot: Sendable, Equatable {
     public var captureToOCRLatency: LatencySummary = .empty
     public var translationLatency: LatencySummary = .empty
     public var captureToTranslationLatency: LatencySummary = .empty
+    /// Stable text first on screen → translated text shown in the UI (panel or overlay).
+    public var captureToDisplayLatency: LatencySummary = .empty
     public var translationCacheHits: Int = 0
     public var translationCacheMisses: Int = 0
     public var translationRequests: Int = 0
@@ -45,6 +47,7 @@ public final class PipelineMetrics: Sendable {
         var captureToOCR = LatencyStats()
         var translationLatency = LatencyStats()
         var captureToTranslation = LatencyStats()
+        var captureToDisplay = LatencyStats()
         var ocrDropped = 0
         var ocrInFlight = false
         var ocrFailures = 0
@@ -91,7 +94,11 @@ public final class PipelineMetrics: Sendable {
         }
     }
 
-    public func duplicateTextDetected() { state.withLock { $0.duplicateText += 1 } }
+    public func duplicateTextDetected(count: Int = 1) { state.withLock { $0.duplicateText += count } }
+
+    public func translationDisplayed(frameHostTime: HostTime, at time: HostTime) {
+        state.withLock { $0.captureToDisplay.record(time - frameHostTime) }
+    }
     public func translationCacheHit() { state.withLock { $0.cacheHits += 1 } }
     public func translationCacheMiss() { state.withLock { $0.cacheMisses += 1 } }
 
@@ -128,6 +135,7 @@ public final class PipelineMetrics: Sendable {
             snap.captureToOCRLatency = s.captureToOCR.summary
             snap.translationLatency = s.translationLatency.summary
             snap.captureToTranslationLatency = s.captureToTranslation.summary
+            snap.captureToDisplayLatency = s.captureToDisplay.summary
             snap.translationCacheHits = s.cacheHits
             snap.translationCacheMisses = s.cacheMisses
             snap.translationRequests = s.translationRequests
