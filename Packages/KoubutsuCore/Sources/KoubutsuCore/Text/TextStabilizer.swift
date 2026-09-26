@@ -20,6 +20,8 @@ public struct StableText: Sendable, Hashable, Identifiable {
 public enum TextEvent: Sendable, Hashable {
     /// A block's text became stable (first time, or after it changed).
     case stabilized(StableText)
+    /// A block's previously stable text changed (new page, scene change); its old translation is stale.
+    case invalidated(trackID: UUID)
     /// A block left the screen.
     case removed(trackID: UUID)
 }
@@ -92,9 +94,11 @@ public struct TextStabilizer: Sendable {
             if let index = bestTrack(for: block, among: unmatchedTracks) {
                 unmatchedTracks.remove(index)
                 var track = tracks[index]
+                let wasStable = track.isStable
                 if Self.update(&track, with: block, frame: result.frame, configuration: configuration) {
                     duplicateDetections += 1
                 }
+                if wasStable && !track.isStable { events.append(.invalidated(trackID: track.id)) }
                 tracks[index] = track
             } else {
                 tracks.append(TrackedBlock(id: UUID(), block: block, firstSeenCurrentText: result.frame,

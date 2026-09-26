@@ -112,7 +112,7 @@ final class TranslationController {
                 history.record(stable)
                 upsert(DisplayedText(stable: stable, status: .translating))
                 translate(stable)
-            case .removed(let trackID):
+            case .removed(let trackID), .invalidated(let trackID):
                 displayed.removeAll { $0.id == trackID }
             }
         }
