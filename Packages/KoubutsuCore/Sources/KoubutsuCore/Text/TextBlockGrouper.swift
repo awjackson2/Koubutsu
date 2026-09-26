@@ -46,6 +46,10 @@ public struct TextBlockGrouper: Sendable {
     public var maximumFragmentGapRatio: Double = 1.2
     /// Rows count as the same line when their vertical overlap is at least this fraction of the shorter one.
     public var minimumRowOverlap: Double = 0.5
+    /// A wrapped tail of at most this many characters (e.g. 「ク」 of 「ロック」) has a tight, short glyph box…
+    public var shortTailLength: Int = 2
+    /// …so it may be down to this fraction of the line height above it.
+    public var shortTailMinimumHeightRatio: Double = 0.5
 
     public init() {}
 
@@ -56,13 +60,28 @@ public struct TextBlockGrouper: Sendable {
         }
         var groups: [[RecognizedTextObservation]] = []
         for line in sorted {
-            if let index = groups.lastIndex(where: { belongs(line, below: $0.last!) }) {
+            let candidates = groups.indices.filter { belongs(line, below: groups[$0].last!) }
+            let startsItem = startsListItem(TextNormalizer.listMarker(line.text), after: candidates.map { groups[$0] })
+            if !startsItem, let index = candidates.last {
                 groups[index].append(line)
             } else {
                 groups.append([line])
             }
         }
         return groups.map { TextBlock(lines: $0) }
+    }
+
+    /// A list item (`1.`, `・`, `②`) starts its own block so each item's English replaces it in place. A number
+    /// running into a digit (`8.3.5mm`) is an item only when it follows the previous item's number.
+    func startsListItem(_ marker: TextNormalizer.ListMarker?, after groups: [[RecognizedTextObservation]]) -> Bool {
+        switch marker {
+        case nil: return false
+        case .bullet, .numbered(_, strict: true): return true
+        case .numbered(let number, strict: false):
+            return groups.contains {
+                if case .numbered(let previous, _) = TextNormalizer.listMarker($0[0].text) { previous == number - 1 } else { false }
+            }
+        }
     }
 
     /// Joins side-by-side fragments of the same line into one observation (left to right).
@@ -82,6 +101,8 @@ public struct TextBlockGrouper: Sendable {
         let a = left.boundingBox, b = right.boundingBox
         let overlap = min(a.maxY, b.maxY) - max(a.minY, b.minY)
         guard overlap >= minimumRowOverlap * min(a.height, b.height) else { return false }
+        // Text of clearly different size on one row (a caption beside body text) is not one line.
+        guard a.height > 0, b.height > 0, heightRatioRange.contains(b.height / a.height) else { return false }
         let gap = b.minX - a.maxX
         let height = max(a.height, b.height)
         return gap >= -0.5 * height && gap <= maximumFragmentGapRatio * height
@@ -103,7 +124,10 @@ public struct TextBlockGrouper: Sendable {
         let a = previous.boundingBox, b = line.boundingBox
         guard a.height > 0, b.height > 0 else { return false }
         let ratio = b.height / a.height
-        guard heightRatioRange.contains(ratio) else { return false }
+        let isShortTail = TextNormalizer.key(line.text).count <= shortTailLength
+        guard heightRatioRange.contains(ratio)
+                || (isShortTail && ratio >= shortTailMinimumHeightRatio && ratio <= heightRatioRange.upperBound)
+        else { return false }
         let lineHeight = max(a.height, b.height)
         let gap = b.minY - a.maxY
         guard gap >= -0.5 * lineHeight, gap <= maximumGapRatio * lineHeight else { return false }

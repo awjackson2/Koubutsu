@@ -1,6 +1,6 @@
 # Architecture
 
-Last synced: Phase 7.6.0 (2026-09-26)
+Last synced: Phase 7.6.2 (2026-09-26)
 
 ## Layers
 
@@ -64,6 +64,15 @@ Invariants:
 - At most one frame waits for OCR and one is being recognized; everything else is dropped and counted.
 - `FrameTiming` travels with OCR results, stable text and translations: capture→OCR, capture→translation and
   capture→shown latencies are measured, not estimated.
+
+## Text stability rules
+
+- Only blocks containing kana or kanji are tracked; one-glyph blocks need confidence ≥ 0.5.
+- Grouping: a list-item line (`1.`, `(2)`, `③`, `・`) starts its own block; a ≤2-character wrapped tail joins
+  the line above at down to half its height; same-row fragments must have similar heights.
+- Text in free space and growth of shown text (typewriter) are emitted on the first reading. Different text
+  on a shown track, or a new block covering ≥50% of its area with a shown block, needs two readings.
+- A track is removed after 0.6 s and at least two consecutive missed OCR results.
 
 ## Coordinate convention
 
