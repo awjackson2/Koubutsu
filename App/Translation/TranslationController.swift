@@ -135,6 +135,19 @@ final class TranslationController {
                 displayed.removeAll { $0.id == trackID }
             }
         }
+        followTrackedGeometry()
+    }
+
+    /// Keeps each shown box on its text's latest position (text boxes slide, fade in, or are first read
+    /// partially); the text itself is unchanged, so no new translation is needed.
+    private func followTrackedGeometry() {
+        for track in stabilizer.tracks {
+            guard let index = displayed.firstIndex(where: { $0.id == track.id }),
+                  displayed[index].stable.key == track.block.key,
+                  displayed[index].stable.boundingBox != track.block.boundingBox else { continue }
+            displayed[index].stable.boundingBox = track.block.boundingBox
+            displayed[index].stable.lines = track.block.lines
+        }
     }
 
     private func upsert(_ item: DisplayedText) {

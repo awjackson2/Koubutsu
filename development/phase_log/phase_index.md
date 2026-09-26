@@ -53,3 +53,4 @@ Line format:
 - **Phase 7.4.2** (2026-09-26) — [log](phase_7.4.2_log.md) — HUD rule refinements (reverted in 7.5.0).
 - **Phase 7.5.0** (2026-09-26) — [plan](phase_7.5.0_plan.md) · [log](phase_7.5.0_log.md) — Video mode is game mode on a file; analysis layers removed.
 - **Phase 7.6.0** (2026-09-26) — [plan](phase_7.6.0_plan.md) · [log](phase_7.6.0_log.md) — Japanese is replaced by English in place, instantly.
+- **Phase 7.6.1** (2026-09-26) — [log](phase_7.6.1_log.md) — Replacement boxes are opaque, keep words intact and follow their text.

@@ -20,6 +20,9 @@ public struct OverlayPlacement<ID: Hashable & Sendable>: Sendable, Hashable {
     public var frame: PlaneRect
     /// Font size in points that fits the English inside `frame`.
     public var fontSize: Double
+    /// Wrapped line count the font was fitted for (renderers should cap lines here and scale down instead
+    /// of adding lines, so an estimate error never spills out of the box).
+    public var lineLimit: Int
     /// The Japanese text's own box in view points.
     public var sourceFrame: PlaneRect
 }
@@ -36,8 +39,8 @@ public struct OverlayLayout: Sendable {
     public var fontSizeRange: ClosedRange<Double> = 9...44
     /// Rendered line height as a multiple of font size.
     public var lineHeightFactor: Double = 1.2
-    /// Average Latin glyph advance as a multiple of font size.
-    public var glyphWidthFactor: Double = 0.52
+    /// Average Latin glyph advance as a multiple of font size (semibold, conservative).
+    public var glyphWidthFactor: Double = 0.6
 
     public init() {}
 
@@ -54,13 +57,14 @@ public struct OverlayLayout: Sendable {
     }
 
     /// Largest font ≤ `nominal` whose wrapped text fits `width`×`height`, and the height it needs.
-    public func fit(textLength: Int, width: Double, height: Double, nominal: Double) -> (fontSize: Double, height: Double) {
+    public func fit(textLength: Int, width: Double, height: Double,
+                    nominal: Double) -> (fontSize: Double, height: Double, lines: Int) {
         let minimum = fontSizeRange.lowerBound
         var font = max(nominal, minimum)
         while true {
-            let needed = Double(wrappedLines(textLength: textLength, width: width, fontSize: font))
-                * font * lineHeightFactor
-            if needed <= height || font <= minimum { return (font, max(height, needed)) }
+            let lines = wrappedLines(textLength: textLength, width: width, fontSize: font)
+            let needed = Double(lines) * font * lineHeightFactor
+            if needed <= height || font <= minimum { return (font, max(height, needed), lines) }
             font = max(minimum, font - 0.5)
         }
     }
@@ -93,7 +97,8 @@ public struct OverlayLayout: Sendable {
                 }
             }
             frame.y = min(max(frame.y, bounds.minY), max(bounds.minY, bounds.maxY - frame.height))
-            placed.append(OverlayPlacement(id: item.id, frame: frame, fontSize: fitted.fontSize, sourceFrame: source))
+            placed.append(OverlayPlacement(id: item.id, frame: frame, fontSize: fitted.fontSize, lineLimit: fitted.lines,
+                                           sourceFrame: source))
         }
         return placed
     }
