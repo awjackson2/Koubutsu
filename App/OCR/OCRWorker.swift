@@ -36,7 +36,7 @@ final class OCRWorker<Service: OCRService>: Sendable where Service.Frame == Vide
                 guard enabled.load(ordering: .relaxed) else { continue }
                 let config = configuration.withLock { $0 }
                 metrics.ocrStarted()
-                do {
+                do throws(OCRError) {
                     let result = try await service.recognize(frame, configuration: config)
                     metrics.ocrFinished(frameHostTime: frame.timing.hostTime, started: result.started,
                                         finished: result.finished)

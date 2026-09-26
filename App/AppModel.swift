@@ -108,7 +108,7 @@ final class AppModel {
         sourceKind = newSource.kind
         pipelineMetrics.reset()
         startMetricsPolling()
-        do {
+        do throws(VideoSourceError) {
             try await newSource.start()
         } catch {
             sourceState = .failed(error)

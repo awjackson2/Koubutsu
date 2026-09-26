@@ -44,7 +44,7 @@ final class TestVideoSource: VideoSource, @unchecked Sendable {
     func start() async throws(VideoSourceError) {
         await stop()
         handlers.emit(.stateChanged(.starting))
-        do {
+        do throws(VideoSourceError) {
             let (output, format) = try await prepareAndPlay()
             pullQueue.sync {
                 self.output = output.value
