@@ -21,7 +21,10 @@ final class AppModel {
     }
 
     var settings = AppSettings() {
-        didSet { processingTap.setRate(settings.ocrRate.rawValue) }
+        didSet {
+            processingTap.setRate(settings.ocrRate.rawValue)
+            ocrWorker.setConfiguration(settings.ocrConfiguration)
+        }
     }
     private(set) var mediaItems: [MediaItem] = []
     private(set) var selection: SourceSelection?
@@ -29,6 +32,8 @@ final class AppModel {
     private(set) var sourceKind: VideoSourceKind?
     private(set) var format: VideoFormat?
     private(set) var metrics = PipelineMetricsSnapshot()
+    private(set) var latestOCR: OCRResult?
+    private(set) var ocrStatus: String?
     var errorMessage: String?
 
     let clock: any HostClock = AppleHostClock()
@@ -37,6 +42,8 @@ final class AppModel {
     let pipeline: FramePipeline
     /// Sampled, backpressured frames for OCR. Consumed from Phase 1.5.0.
     let processingTap: SampledFrameTap
+    let ocrService = VisionOCRService()
+    private let ocrWorker: OCRWorker<VisionOCRService>
 
     private var source: (any VideoSource<VideoFrame>)?
     private var metricsTask: Task<Void, Never>?
@@ -46,10 +53,27 @@ final class AppModel {
         renderer = SampleBufferRenderer()
         pipelineMetrics = PipelineMetrics(clock: clock)
         pipeline = FramePipeline(renderer: renderer, metrics: pipelineMetrics, clock: clock)
-        processingTap = SampledFrameTap(rate: settings.ocrRate.rawValue, metrics: pipelineMetrics)
+        let initialSettings = AppSettings()
+        processingTap = SampledFrameTap(rate: initialSettings.ocrRate.rawValue, metrics: pipelineMetrics)
         pipeline.setProcessingTap(processingTap)
+        ocrWorker = OCRWorker(service: ocrService, tap: processingTap, metrics: pipelineMetrics, clock: clock,
+                              configuration: initialSettings.ocrConfiguration)
         refreshMedia()
         selection = MediaLibrary.defaultItem.map { .media($0) }
+        ocrWorker.start(
+            onResult: { [weak self] result in self?.latestOCR = result },
+            onError: { [weak self] error in self?.ocrStatus = error.description })
+        Task { await checkOCRSupport() }
+    }
+
+    private func checkOCRSupport() async {
+        let configuration = settings.ocrConfiguration
+        if await ocrService.supports(configuration) {
+            ocrStatus = nil
+        } else {
+            ocrStatus = OCRError.languageUnsupported(configuration.languages.joined(separator: ",")).description
+            ocrWorker.setEnabled(false)
+        }
     }
 
     // MARK: - Sources
@@ -105,6 +129,7 @@ final class AppModel {
         await source.stop()
         source.setEventHandler(nil)
         renderer.clear()
+        latestOCR = nil
         metricsTask?.cancel()
         metricsTask = nil
         sourceState = .stopped

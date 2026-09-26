@@ -13,6 +13,11 @@ struct RootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.black)
                 .overlay(alignment: .center) { sourceMessage }
+            RecognizedTextPanel(result: model.latestOCR, status: model.ocrStatus)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .frame(minHeight: 120, alignment: .top)
+                .background(Color(white: 0.05))
             if model.settings.showDebugStatistics {
                 DebugPanel(model: model)
                     .padding(.horizontal)

@@ -28,6 +28,17 @@ struct GeometryTests {
         #expect(abs(full.y - 0.8) < 1e-12 && abs(full.height - 0.1) < 1e-12 && full.x == 0.5)
     }
 
+    @Test func roiQuadDenormalization() {
+        let roi = NormalizedRect(x: 0.2, y: 0.5, width: 0.5, height: 0.5)
+        // A Vision point at the ROI's bottom-left corner (bottom-left origin inside the ROI).
+        let inner = NormalizedPoint(bottomLeftOriginX: 0, y: 0)
+        let full = roi.denormalizing(inner)
+        #expect(abs(full.x - 0.2) < 1e-12 && abs(full.y - 1.0) < 1e-12)
+        let quad = NormalizedQuad(topLeft: .init(x: 0, y: 0), topRight: .init(x: 1, y: 0),
+                                  bottomRight: .init(x: 1, y: 1), bottomLeft: .init(x: 0, y: 1))
+        #expect(roi.denormalizing(quad).boundingRect.iou(roi) > 0.999999)
+    }
+
     @Test func quadBounds() {
         let q = NormalizedQuad(topLeft: .init(x: 0.1, y: 0.2), topRight: .init(x: 0.5, y: 0.1),
                                bottomRight: .init(x: 0.6, y: 0.4), bottomLeft: .init(x: 0.2, y: 0.5))

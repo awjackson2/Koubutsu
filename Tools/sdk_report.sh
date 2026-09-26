@@ -22,7 +22,8 @@ section "Vision: ImageRequestHandler / perform"
 grep -n -E "public (init|func perform)\(.*(CVPixelBuffer|CMSampleBuffer)" "$VI" | cut -c1-240 | head -20
 block "$VI" "^public struct ImageRequestHandler" 40
 endsection
-section "Vision: NormalizedRect"; grep -n -E "struct NormalizedRect|public init\(normalizedRect|public var cgRect|origin|verticallyFlipped|func toImageCoordinates" "$VI" | cut -c1-200 | head -20; endsection
+section "Vision: NormalizedRect"; block "$VI" "^public struct NormalizedRect " 60; endsection
+section "Vision: NormalizedPoint"; block "$VI" "^public struct NormalizedPoint " 40; endsection
 
 TI=$(iface Translation)
 section "Translation (full, availability-filtered)"

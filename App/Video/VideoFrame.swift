@@ -73,10 +73,10 @@ struct VideoFrameFactory {
 enum VideoPixelFormat {
     static let fourCC: OSType = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
 
-    static var bufferAttributes: [String: Any] {
+    static var bufferAttributes: [String: any Sendable] {
         [
             kCVPixelBufferPixelFormatTypeKey as String: fourCC,
-            kCVPixelBufferIOSurfacePropertiesKey as String: [String: Any](),
+            kCVPixelBufferIOSurfacePropertiesKey as String: [String: any Sendable](),
         ]
     }
 }

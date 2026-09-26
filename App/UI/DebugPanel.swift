@@ -18,12 +18,19 @@ struct DebugPanel: View {
                 row("Last frame", "#\(t.sequence)  pts \(t.presentationTime)",
                     String(format: "age %.0f ms", max(0, model.clock.now() - t.hostTime) * 1000))
             }
-            row("OCR tap", String(format: "%.0f fps target", model.settings.ocrRate.rawValue),
-                "dropped \(m.ocrDroppedFrames)")
+            row("OCR", String(format: "%.0f fps target  %.1f fps done", model.settings.ocrRate.rawValue,
+                              m.ocrProcessedPerSecond),
+                "dropped \(m.ocrDroppedFrames)  failed \(m.ocrFailures)\(m.ocrInFlight ? "  ●" : "")")
+            row("OCR latency", latency(m.ocrLatency), "capture→OCR " + latency(m.captureToOCRLatency))
         }
         .font(.caption.monospaced())
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func latency(_ s: LatencySummary) -> String {
+        guard let last = s.last else { return "—" }
+        return String(format: "%.0f ms (p50 %.0f, p95 %.0f)", last * 1000, (s.p50 ?? 0) * 1000, (s.p95 ?? 0) * 1000)
     }
 
     private func row(_ title: String, _ value: String, _ detail: String) -> some View {

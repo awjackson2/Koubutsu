@@ -71,6 +71,15 @@ public struct NormalizedRect: Sendable, Hashable, Codable, CustomStringConvertib
                        width: inner.width * width, height: inner.height * height)
     }
 
+    public func denormalizing(_ point: NormalizedPoint) -> NormalizedPoint {
+        NormalizedPoint(x: x + point.x * width, y: y + point.y * height)
+    }
+
+    public func denormalizing(_ quad: NormalizedQuad) -> NormalizedQuad {
+        NormalizedQuad(topLeft: denormalizing(quad.topLeft), topRight: denormalizing(quad.topRight),
+                       bottomRight: denormalizing(quad.bottomRight), bottomLeft: denormalizing(quad.bottomLeft))
+    }
+
     public var description: String {
         String(format: "(x %.3f, y %.3f, w %.3f, h %.3f)", x, y, width, height)
     }
