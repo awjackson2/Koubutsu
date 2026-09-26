@@ -26,6 +26,8 @@ struct StudyView: View {
                     highlights(mapper)
                     dragRectangle
                     loupe(image, size: geometry.size)
+                    if session.phase == .recognizing { ScanSweep() }
+                    FreezeFlash()
                     status
                         .frame(width: geometry.size.width, alignment: .leading)
                         .padding(.top, 10)
@@ -62,7 +64,9 @@ struct StudyView: View {
                 .overlay(CornerTicks(length: 8).stroke(K.red, lineWidth: 3))
                 .frame(width: rect.width + 4, height: rect.height + 4)
                 .offset(x: rect.x - 2, y: rect.y - 2)
+                .transition(.scale(scale: 1.25).combined(with: .opacity))
         }
+        .animation(K.snap, value: session.spans)
         .allowsHitTesting(false)
     }
 
@@ -103,7 +107,10 @@ struct StudyView: View {
             Text("▮▮ PAUSE").foregroundStyle(K.paper)
             switch session.phase {
             case .recognizing:
-                Text("READING_").foregroundStyle(K.red)
+                HStack(spacing: 4) {
+                    Text("READING").foregroundStyle(K.red)
+                    BlinkingCursor(width: 10, height: 18)
+                }
             case .failed(let message):
                 Text(message.uppercased()).foregroundStyle(K.red)
             case .ready:

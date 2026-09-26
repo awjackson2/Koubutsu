@@ -87,6 +87,8 @@ struct LaunchOptions {
     var openSheet: String?
     /// Add a few demo words to the word bank (automation screenshots).
     var seedWords = false
+    /// Skip the power-on animation.
+    var skipBoot = false
     /// Enter study mode this many seconds after launch (automation screenshots).
     var studyAfter: Double?
     /// Then select this normalized rect: `x,y,w,h`.
@@ -110,6 +112,7 @@ struct LaunchOptions {
             case "--full-screen": fullScreen = true
             case "--furigana": overlayStyle = .furigana
             case "--seed-words": seedWords = true
+            case "--skip-boot": skipBoot = true
             default:
                 if arg.hasPrefix("--select-video=") { selectVideo = String(arg.dropFirst("--select-video=".count)) }
                 if arg.hasPrefix("--start-at=") { startAt = Double(arg.dropFirst("--start-at=".count)) }

@@ -20,6 +20,7 @@ struct RootView: View {
     @State private var peeking = false
     @State private var study = StudySession()
     @State private var readingAids = ReadingAidModel()
+    @State private var booting = !LaunchOptions.current.skipBoot
     /// A file source was playing when study mode froze it.
     @State private var resumeAfterStudy = false
     @Environment(\.scenePhase) private var scenePhase
@@ -53,6 +54,12 @@ struct RootView: View {
                 }
             }
             .background { KeyboardShortcuts(model: model, actions: shortcutActions) }
+            .overlay {
+                if booting {
+                    BootSequenceView { withAnimation(.easeOut(duration: 0.2)) { booting = false } }
+                        .transition(.opacity)
+                }
+            }
         }
         .background(Color.black)
         .ignoresSafeArea(edges: .top)
@@ -62,6 +69,7 @@ struct RootView: View {
         .persistentSystemOverlays(.hidden)
         .statusBarHidden(isFullScreen)
         .animation(.easeInOut(duration: 0.2), value: showsChrome)
+        .animation(K.reveal, value: study.isActive)
         .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.movie, .mpeg4Movie, .quickTimeMovie]) { result in
             if case .success(let url) = result {
                 Task { await model.importVideo(from: url) }
@@ -212,7 +220,10 @@ struct RootView: View {
             }
             .overlay(alignment: .center) { sourceMessage }
             .overlay {
-                if study.isActive { StudyView(session: study) }
+                if study.isActive {
+                    StudyView(session: study)
+                        .transition(.opacity)
+                }
             }
             .overlay(alignment: .top) {
                 if peeking && !study.isActive {
@@ -287,6 +298,7 @@ struct RootView: View {
                 .padding()
                 .background(K.red)
                 .kFrame(K.paper, tick: 10)
+                .transition(.scale(scale: 1.2).combined(with: .opacity))
         }
     }
 }
@@ -337,7 +349,7 @@ private struct ControlBar: View {
                 HStack(spacing: 6) {
                     PixelIcon("words")
                     Text("Words")
-                    if due > 0 { KTag(text: "\(due)", filled: true) }
+                    if due > 0 { KTag(text: "\(due)", filled: true).kPulse(on: due) }
                 }
             }
             .buttonStyle(KIconButtonStyle())

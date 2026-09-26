@@ -30,7 +30,10 @@ struct StudyPanel: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 6) {
                     if session.spans.isEmpty {
-                        Text(hint.uppercased() + "_").font(K.osd(16)).foregroundStyle(K.paper.opacity(0.6))
+                        HStack(spacing: 6) {
+                            Text(hint.uppercased()).font(K.osd(16)).foregroundStyle(K.paper.opacity(0.6))
+                            BlinkingCursor()
+                        }
                     } else {
                         Text(session.selectedText)
                             .font(.system(size: 34, weight: .semibold))
@@ -63,7 +66,10 @@ struct StudyPanel: View {
                             }
                         }
                         if session.isTranslating {
-                            Text("TRANSLATING_").font(K.osd(14)).foregroundStyle(K.red)
+                            HStack(spacing: 4) {
+                                Text("TRANSLATING").font(K.osd(14)).foregroundStyle(K.red)
+                                BlinkingCursor(width: 8, height: 14)
+                            }
                         } else if let translation = session.translation {
                             HStack(alignment: .firstTextBaseline, spacing: 8) {
                                 Text("EN").font(K.osd(12)).foregroundStyle(K.red)
