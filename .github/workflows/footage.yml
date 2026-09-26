@@ -1,0 +1,42 @@
+name: Footage screenshots
+# Runs the app on external gameplay footage (as a user-imported video) and captures screenshots of live
+# Japanese→English replacement. The footage URL comes from the footage_url input or the DEMO_FOOTAGE_URL
+# secret (masked); the video is never committed or uploaded as an artifact.
+on:
+  workflow_dispatch:
+    inputs:
+      footage_url:
+        description: Direct download URL of the footage (overrides the DEMO_FOOTAGE_URL secret; masked in logs)
+        required: false
+        default: ""
+      screenshot_times:
+        description: Media times (s) to capture at, space separated
+        default: "12 106 274 314"
+concurrency:
+  group: footage-${{ github.run_id }}
+  cancel-in-progress: false
+jobs:
+  screenshots:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      FOOTAGE_URL: ${{ github.event.inputs.footage_url || secrets.DEMO_FOOTAGE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download footage
+        run: |
+          if [ -z "$FOOTAGE_URL" ]; then echo "::error::no footage URL"; exit 1; fi
+          echo "::add-mask::$FOOTAGE_URL"
+          mkdir -p "$RUNNER_TEMP/footage"
+          curl -sSL --fail -o "$RUNNER_TEMP/footage/footage.mov" "$FOOTAGE_URL"
+          file "$RUNNER_TEMP/footage/footage.mov" | grep -qiE "quicktime|mp4|iso media" || { echo "::error::download is not a video"; exit 1; }
+      - name: Select Xcode
+        run: Tools/ci_select_xcode.sh
+      - name: App screenshots on the footage
+        run: Tools/ci_footage_screenshots.sh "$RUNNER_TEMP/footage/footage.mov" footage "${{ github.event.inputs.screenshot_times }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: footage-screenshots
+          path: build/footage-screenshots/
+          retention-days: 14

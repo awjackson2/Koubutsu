@@ -1,0 +1,17 @@
+name: Core (Linux)
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: core-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: swift test
+        run: swift test --package-path Packages/KoubutsuCore

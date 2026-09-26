@@ -1,0 +1,40 @@
+name: iOS
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: ios-v4-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-test:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: Tools/ci_select_xcode.sh
+      - name: SDK report
+        run: Tools/sdk_report.sh | tee sdk-report.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdk-report
+          path: sdk-report.md
+      - name: Build and test (iPad simulator)
+        run: mkdir -p build && Tools/ci_simulator_test.sh test
+      - name: Test attachments (benchmark report)
+        if: always()
+        run: |
+          mkdir -p build/attachments
+          xcrun xcresulttool export attachments --path build/Koubutsu-test.xcresult --output-path build/attachments || true
+          find build/attachments -name "*.txt" -exec sh -c 'echo "== $1"; cat "$1"' _ {} \;
+      - name: Show build errors
+        if: failure()
+        run: grep -n -B2 -A6 -E "error:|Failing|failed" build/xcodebuild.log | head -300 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xcresult
+          path: build/
+          retention-days: 5
+

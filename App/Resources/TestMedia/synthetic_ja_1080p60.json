@@ -1,0 +1,153 @@
+{
+  "name": "synthetic_ja_1080p60",
+  "width": 1920,
+  "height": 1080,
+  "fps": 60,
+  "duration": 24.0,
+  "coordinateSpace": "normalized, top-left origin",
+  "checkpoints": [
+    {
+      "id": "title",
+      "start": 0.0,
+      "end": 6.0,
+      "expected": [
+        {
+          "text": "冒険を始めますか？",
+          "box": {
+            "x": 0.275,
+            "y": 0.2935,
+            "width": 0.45,
+            "height": 0.0815
+          }
+        },
+        {
+          "text": "はい",
+          "box": {
+            "x": 0.4708,
+            "y": 0.4981,
+            "width": 0.0583,
+            "height": 0.0417
+          }
+        },
+        {
+          "text": "いいえ",
+          "box": {
+            "x": 0.4562,
+            "y": 0.5991,
+            "width": 0.0875,
+            "height": 0.0435
+          }
+        }
+      ]
+    },
+    {
+      "id": "dialogue_line1",
+      "start": 6.8,
+      "end": 14.0,
+      "expected": [
+        {
+          "text": "この先には強い敵がいる。",
+          "box": {
+            "x": 0.1198,
+            "y": 0.7343,
+            "width": 0.4,
+            "height": 0.0546
+          }
+        }
+      ]
+    },
+    {
+      "id": "dialogue_line2",
+      "start": 10.0,
+      "end": 14.0,
+      "expected": [
+        {
+          "text": "鍵が必要です",
+          "box": {
+            "x": 0.1198,
+            "y": 0.8269,
+            "width": 0.2,
+            "height": 0.0556
+          }
+        }
+      ]
+    },
+    {
+      "id": "saving",
+      "start": 14.0,
+      "end": 18.0,
+      "expected": [
+        {
+          "text": "セーブしています…",
+          "box": {
+            "x": 0.8,
+            "y": 0.0565,
+            "width": 0.1688,
+            "height": 0.0315
+          }
+        }
+      ]
+    },
+    {
+      "id": "menu",
+      "start": 18.0,
+      "end": 24.0,
+      "expected": [
+        {
+          "text": "メニュー",
+          "box": {
+            "x": 0.0885,
+            "y": 0.1407,
+            "width": 0.2,
+            "height": 0.0704
+          }
+        },
+        {
+          "text": "アイテム",
+          "box": {
+            "x": 0.1354,
+            "y": 0.3111,
+            "width": 0.1167,
+            "height": 0.0435
+          }
+        },
+        {
+          "text": "そうび",
+          "box": {
+            "x": 0.1354,
+            "y": 0.4204,
+            "width": 0.0875,
+            "height": 0.0463
+          }
+        },
+        {
+          "text": "ステータス",
+          "box": {
+            "x": 0.1354,
+            "y": 0.5333,
+            "width": 0.1458,
+            "height": 0.0435
+          }
+        },
+        {
+          "text": "セーブ",
+          "box": {
+            "x": 0.1354,
+            "y": 0.6407,
+            "width": 0.0875,
+            "height": 0.0454
+          }
+        },
+        {
+          "text": "Ａボタンで決定",
+          "box": {
+            "x": 0.0885,
+            "y": 0.8352,
+            "width": 0.1313,
+            "height": 0.0306
+          }
+        }
+      ]
+    }
+  ]
+}

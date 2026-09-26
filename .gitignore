@@ -1,0 +1,20 @@
+# Phase workflow
+.claude/worktrees/
+
+# macOS / Xcode
+.DS_Store
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Local test media (large; never committed)
+TestMedia/local/
