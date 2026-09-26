@@ -13,6 +13,7 @@ struct OCRBenchmarkTests {
         // limits while still sampling every checkpoint; on device use the in-app benchmark at 2 FPS.
         let report = try await BenchmarkRunner(sampleRate: 0.5).run(clip: clip, manifest: manifest)
         print("OCR BENCHMARK\n" + report.summary)
+        Attachment.record(report.summary, named: "ocr-benchmark.txt")
         #expect(report.sampleCount >= 12)
         #expect(report.exactMatchRate >= 0.8, "\(report.summary)")
         #expect(report.meanCharacterAccuracy >= 0.9, "\(report.summary)")
