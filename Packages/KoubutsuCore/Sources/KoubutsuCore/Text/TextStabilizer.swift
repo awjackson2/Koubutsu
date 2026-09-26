@@ -15,6 +15,18 @@ public struct StableText: Sendable, Hashable, Identifiable {
     public var firstSeenFrame: FrameTiming
     /// Frame at which it was judged stable.
     public var stabilizedFrame: FrameTiming
+
+    public init(trackID: UUID, text: String, key: String, boundingBox: NormalizedRect, confidence: Float,
+                lines: [RecognizedTextObservation], firstSeenFrame: FrameTiming, stabilizedFrame: FrameTiming) {
+        self.trackID = trackID
+        self.text = text
+        self.key = key
+        self.boundingBox = boundingBox
+        self.confidence = confidence
+        self.lines = lines
+        self.firstSeenFrame = firstSeenFrame
+        self.stabilizedFrame = stabilizedFrame
+    }
 }
 
 public enum TextEvent: Sendable, Hashable {
