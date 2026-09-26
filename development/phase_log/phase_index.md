@@ -23,3 +23,21 @@ Line format:
 - **Phase 2.5.0** (2026-09-26) — [plan](phase_2.5.0_plan.md) · [log](phase_2.5.0_log.md) — Japanese and its English translation appear under the video with timing and cache stats.
 - **Phase 2.6.0** (2026-09-26) — [plan](phase_2.6.0_plan.md) · [log](phase_2.6.0_log.md) — A settings screen that remembers choices.
 - **Phase 2.7.0** (2026-09-26) — [plan](phase_2.7.0_plan.md) · [log](phase_2.7.0_log.md) — A running log of dialogue and translations is kept and passed along as context.
+- **Phase 2.2.1** (2026-09-26) — [log](phase_2.2.1_log.md) — When on-screen Japanese changes, its old English disappears immediately.
+- **Phase 4.1.1** (2026-09-26) — [log](phase_4.1.1_log.md) — Fixed a resource leak in CPU measurement; CI now collects crash reports.
+- **Phase 1.4.1** (2026-09-26) — [log](phase_1.4.1_log.md) — Fixed a crash that closed the app after a minute or two of playback.
+- **Phase 2.1.2** (2026-09-26) — [log](phase_2.1.2_log.md) — Small text split into pieces by the recognizer is put back together before translation.
+- **Phase 3.0.0** (2026-09-26) — [plan](phase_3.0.0_plan.md) — Roadmap for putting English over the game where the Japanese is.
+- **Phase 3.1.0** (2026-09-26) — [plan](phase_3.1.0_plan.md) · [log](phase_3.1.0_log.md) — One tested place converts positions between the video and the screen.
+- **Phase 3.2.0** (2026-09-26) — [plan](phase_3.2.0_plan.md) · [log](phase_3.2.0_log.md) — Recognized text can be outlined on the video to check positions.
+- **Phase 3.3.0** (2026-09-26) — [plan](phase_3.3.0_plan.md) · [log](phase_3.3.0_log.md) — English is drawn over the Japanese it translates.
+- **Phase 4.0.0** (2026-09-26) — [plan](phase_4.0.0_plan.md) — Roadmap for performance, benchmark and device testing.
+- **Phase 4.1.0** (2026-09-26) — [plan](phase_4.1.0_plan.md) · [log](phase_4.1.0_log.md) — The debug panel shows CPU, memory, heat and dropped frames.
+- **Phase 4.2.0** (2026-09-26) — [plan](phase_4.2.0_plan.md) · [log](phase_4.2.0_log.md) — An automatic benchmark scores text recognition on the test clip in CI.
+- **Phase 4.3.0** (2026-09-26) — [plan](phase_4.3.0_plan.md) · [log](phase_4.3.0_log.md) — Step-by-step instructions and an in-app benchmark for testing on a real iPad (awaiting hardware).
+- **Phase 5.0.0** (2026-09-26) — [plan](phase_5.0.0_plan.md) — Roadmap for using a real USB capture device.
+- **Phase 5.1.0** (2026-09-26) — [plan](phase_5.1.0_plan.md) · [log](phase_5.1.0_log.md) — The app picks the best 1080p60 video mode offered by any capture device.
+- **Phase 5.2.0** (2026-09-26) — [plan](phase_5.2.0_plan.md) · [log](phase_5.2.0_log.md) — Live video from a USB capture device feeds the same pipeline (untested on hardware).
+- **Phase 5.3.0** (2026-09-26) — [plan](phase_5.3.0_plan.md) · [log](phase_5.3.0_log.md) — Plugging in a capture device switches to it automatically (untested on hardware).
+- **Phase 6.0.0** (2026-09-26) — [plan](phase_6.0.0_plan.md) — Roadmap for capture audio.
+- **Phase 6.1.0** (2026-09-26) — [plan](phase_6.1.0_plan.md) · [log](phase_6.1.0_log.md) — Game audio from the capture device plays through the iPad (untested on hardware).
