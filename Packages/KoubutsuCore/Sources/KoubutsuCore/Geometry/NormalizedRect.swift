@@ -57,6 +57,11 @@ public struct NormalizedRect: Sendable, Hashable, Codable, CustomStringConvertib
         return NormalizedRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)
     }
 
+    public func isApproximatelyEqual(to other: NormalizedRect, tolerance: Double = 1e-9) -> Bool {
+        abs(x - other.x) <= tolerance && abs(y - other.y) <= tolerance
+            && abs(width - other.width) <= tolerance && abs(height - other.height) <= tolerance
+    }
+
     /// Intersection-over-union, 0...1.
     public func iou(_ other: NormalizedRect) -> Double {
         guard let i = intersection(other) else { return 0 }
