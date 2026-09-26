@@ -60,3 +60,5 @@ Line format:
 - **Phase 7.6.4** (2026-09-26) — [plan](phase_7.6.4_plan.md) · [log](phase_7.6.4_log.md) — The video has a fixed stage; bars and panels overlay the space below it.
 - **Phase 7.8.0** (2026-09-26) — [plan](phase_7.8.0_plan.md) · [log](phase_7.8.0_log.md) — Full screen, English/Japanese toggle, hold-to-peek, recent lines, keep-awake, text size, keyboard shortcuts.
 - **Phase 8.0.0** (2026-09-26) — [plan](phase_8.0.0_plan.md) — Study mode umbrella roadmap (8.1.0–8.6.0).
+- **Phase 8.1.0** (2026-09-26) — [plan](phase_8.1.0_plan.md) · [log](phase_8.1.0_log.md) — Study mode: freeze the frame, tap or drag to select Japanese, see its translation.
+- **Phase 8.2.0** (2026-09-26) — [plan](phase_8.2.0_plan.md) · [log](phase_8.2.0_log.md) — JMdict + KANJIDIC2 bundled offline (SQLite, 23 MB compressed) with attribution.
