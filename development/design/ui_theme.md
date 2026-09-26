@@ -1,6 +1,6 @@
 # UI theme — the Koubutsu look
 
-Last synced: Phase 9.3.0 (2026-09-26)
+Last synced: Phase 9.4.1 (2026-09-26)
 
 Heisei-era (late 90s–2005) VCR on-screen display meets surveillance HUD: paper white, ink black, signal red,
 1-bit dithered imagery, detection boxes with corner ticks, monospaced OSD lettering.
@@ -27,6 +27,13 @@ the button presses into), `KIconButtonStyle`, `KToggleStyle` (sliding block + ON
 square thumb), `KSegmented`, `KMenu` (ink popover list replacing `Menu`), `KSectionHeader` ("■ ■ ■ TITLE —— 01"),
 `KTag`, `KSheetHeader` (replaces navigation bars), `kPanel`, `kSheet` (square, paper), `KSearchField`,
 `GrainOverlay`, `Scanlines`, `CornerTicks`, `BlockMarks`. UIKit appearance covers remaining system bars/alerts.
+
+## Monitor housing (`App/Theme/MonitorFrame.swift`)
+Outside full screen the video sits in a surveillance-monitor console: header strip (CH-01 tag, source name,
+blinking REC/STBY dot and 24-hour clock), tick rails (red every 1/4 of the stage), recessed bezel, red corner
+ticks, maker's plate below. The stage comes from `VideoStageLayout.framed` with `windowedInsets(safeTop:)`
+(top = max(safe top, 24) + 38, sides 18, bottom 16), so it depends only on the window. Full screen uses the
+edge-to-edge stage; the switch animates with `K.reveal`. The housing fills the window; chrome overlays it.
 
 ## Art (`Tools/pixel_art.py`)
 

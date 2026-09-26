@@ -23,7 +23,7 @@ public enum VideoStageLayout {
     }
 
     /// Header strip height of the monitor housing, below the status bar.
-    public static let headerHeight = 30.0
+    public static let headerHeight = 38.0
 
     /// Housing insets outside full screen. `safeTop` is the status-bar inset (floored so the header never
     /// collides with the status bar when the inset is reported as zero).

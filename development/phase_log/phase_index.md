@@ -68,3 +68,8 @@ Line format:
 - **Phase 8.5.0** (2026-09-26) — [plan](phase_8.5.0_plan.md) · [log](phase_8.5.0_log.md) — Word bank with context, FSRS review, Anki export.
 - **Phase 8.6.0** (2026-09-26) — [plan](phase_8.6.0_plan.md) · [log](phase_8.6.0_log.md) — Furigana over the game's kanji; learning words underlined; known words bare.
 - **Phase 9.0.0** (2026-09-26) — [plan](phase_9.0.0_plan.md) — UI polish umbrella: Heisei VCR/HUD pixel identity (9.1.0–9.3.0).
+- **Phase 9.1.0** (2026-09-26) — [plan](phase_9.1.0_plan.md) · [log](phase_9.1.0_log.md) — Design system: tokens, VCR OSD Mono/DotGothic16, components, original pixel art, app icon, cover.
+- **Phase 9.2.0** (2026-09-26) — [plan](phase_9.2.0_plan.md) · [log](phase_9.2.0_log.md) — Every screen rethemed with Koubutsu components; no stock controls.
+- **Phase 9.3.0** (2026-09-26) — [plan](phase_9.3.0_plan.md) · [log](phase_9.3.0_log.md) — VCR boot sequence, freeze scan, bracket snap, blinking cursors; Reduce Motion aware.
+- **Phase 9.4.0** (2026-09-26) — [plan](phase_9.4.0_plan.md) · [log](phase_9.4.0_log.md) — Surveillance-monitor housing around the video outside full screen.
+- **Phase 9.4.1** (2026-09-26) — [log](phase_9.4.1_log.md) — Monitor header clears the status bar; housing fills the window.

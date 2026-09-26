@@ -31,13 +31,15 @@ Major 8 complete (`9c4d3d9`). Stock SwiftUI controls, SF Symbols, no asset catal
 ## Technical Plan
 Roadmap checklist:
 ```
-- [ ] 9.1.0 — Design system + pixel art: tokens, VCR OSD Mono/DotGothic16, textures, components (KButton,
+- [x] 9.1.0 — Design system + pixel art: tokens, VCR OSD Mono/DotGothic16, textures, components (KButton,
               KIconButton, KToggle, KSlider, KSegmented, KMenu, panels, tags, headers, sheets), UIKit appearance;
               icon set, logo mark + wordmark, app icon, launch screen, cover art (Tools/pixel_art.py)
-- [ ] 9.2.0 — Retheme every screen: control/transport bars, panels, overlays, study view/panel, word card,
+- [x] 9.2.0 — Retheme every screen: control/transport bars, panels, overlays, study view/panel, word card,
               word bank, review, settings, recent lines
-- [ ] 9.3.0 — Animations: boot sequence, freeze scan + OSD stamp, selection bracket snap, stepped panel
+- [x] 9.3.0 — Animations: boot sequence, freeze scan + OSD stamp, selection bracket snap, stepped panel
               reveals, press feedback, blinking cursor
+- [x] 9.4.0 — (amendment, user request) Monitor housing around the video outside full screen; 9.4.1 header
+              clearance and full-height housing
 ```
 
 ## Test Plan

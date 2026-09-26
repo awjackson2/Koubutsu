@@ -16,11 +16,12 @@ struct MonitorFrame: View {
     var body: some View {
         let housingBottom = stage.maxY + bottomInset
         ZStack(alignment: .topLeading) {
-            // Housing
+            // Housing: fills the window so the space the chrome does not cover (portrait) is part of the console.
             K.inkRaised
-                .frame(height: housingBottom)
                 .kTexture(grain: 0.25, scanlines: 0.35)
-                .overlay(alignment: .bottom) { Rectangle().fill(K.paper.opacity(0.18)).frame(height: 1) }
+            Rectangle().fill(K.paper.opacity(0.18))
+                .frame(height: 1)
+                .offset(y: housingBottom)
             // Recessed bezel
             Rectangle()
                 .fill(K.ink)
@@ -34,7 +35,10 @@ struct MonitorFrame: View {
                 .offset(x: stage.minX - tickInset, y: stage.minY - tickInset)
             header
                 .frame(width: stage.width, height: 18)
-                .offset(x: stage.minX, y: stage.minY - tickInset - 22)
+                .offset(x: stage.minX, y: stage.minY - 34)
+            caption
+                .frame(width: stage.width, height: 16)
+                .offset(x: stage.minX, y: housingBottom + 14)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .allowsHitTesting(false)
@@ -57,6 +61,20 @@ struct MonitorFrame: View {
             Spacer(minLength: 8)
             MonitorClock(isRunning: isRunning)
         }
+    }
+
+    /// Maker's plate under the housing (visible where the chrome leaves space, e.g. portrait).
+    private var caption: some View {
+        HStack(spacing: 10) {
+            BlockMarks(count: 3, size: 4, color: K.paper.opacity(0.3))
+            Text("KOUBUTSU MONITOR SYSTEM · MODEL KB-09")
+                .font(K.osdFixed(12))
+            Spacer(minLength: 8)
+            Text("よむ・わかる・おぼえる")
+                .font(K.dotFixed(12))
+        }
+        .foregroundStyle(K.paper.opacity(0.3))
+        .lineLimit(1)
     }
 
     /// Ruler ticks: along both sides (every 1/32 of the stage height, longer every 1/4 and 1/8) and along the
