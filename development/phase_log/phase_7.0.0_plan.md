@@ -29,12 +29,17 @@ The user wants to load their own gameplay recordings (e.g. 10 minutes of Persona
 Playback control is a separate protocol (`PlaybackControlling`) that only file sources adopt, so live capture code is untouched and downstream stays source-agnostic. Seeking is a content discontinuity: stabilizer and displayed translations reset.
 
 ## Technical Plan
-Roadmap checklist:
+Roadmap checklist (rewritten in Phase 7.5.0 — product direction: wherever Japanese text is on screen,
+replace it with English in real time; Video mode behaves exactly like game mode):
 ```
-- [ ] 7.1.0 — PlaybackControlling + TestVideoSource play/pause/seek/loop/status   deps: 1.3.0  risk: low
-- [ ] 7.2.0 — Video mode UI: transport bar, scrubber, library/import           deps: 7.1.0  risk: low
-- [ ] 7.3.0 — TranscriptBuilder (core) + transcript sheet + SRT/CSV export      deps: 7.2.0  risk: low
-- [ ] 7.3.1 — Persona 3 Reload footage OCR report                              deps: 7.3.0  risk: external (file access)
+- [x] 7.1.0 — PlaybackControlling + TestVideoSource play/pause/seek/loop/status
+- [x] 7.2.0 — Video mode transport bar (play/pause, ±10 s, scrubber, loop, import)
+- [x] 7.3.0 — transcript + export                     (superseded; removed in 7.5.0)
+- [x] 7.3.1 — whole-video analysis, footage report     (superseded; removed in 7.5.0)
+- [x] 7.4.0–7.4.2 — speaker labels, HUD suppression   (superseded; removed in 7.5.0)
+- [x] 7.4.1 — paused frame keeps being read (kept)
+- [ ] 7.5.0 — reframe: remove analysis/transcript/speaker/HUD layers
+- [ ] 7.6.0 — replace-in-place overlay as default + instant updates
 ```
 
 ## Test Plan

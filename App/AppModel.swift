@@ -121,7 +121,6 @@ final class AppModel {
         processingTap.setRate(settings.ocrRate.rawValue)
         ocrWorker.setConfiguration(settings.ocrConfiguration)
         captureAudio.volume = Float(settings.captureAudioVolume)
-        translation.hidesHUDText = settings.hideHUDText
         translation.quality = settings.translationMode == .higherQuality ? .highFidelity : .lowLatency
         translation.sourceLanguage = settings.sourceLanguage
         translation.targetLanguage = settings.targetLanguage
@@ -146,9 +145,6 @@ final class AppModel {
             return
         }
         errorMessage = nil
-        if case .media(let item) = selection, item.url != currentMediaURL {
-            translation.clearTranscript()
-        }
         if case .media(let item) = selection {
             currentMediaURL = item.url
         } else {
@@ -306,35 +302,6 @@ final class AppModel {
         settings.loopTestVideo = loops
         await playbackControl?.setLooping(loops)
         playback = await playbackControl?.playbackStatus()
-    }
-
-    /// Progress 0...1 of "Analyze whole video", nil when idle.
-    private(set) var analysisProgress: Double?
-    private(set) var analysisSummary: String?
-
-    /// Runs OCR over the whole current video offline (faster than playback) and fills the transcript.
-    func analyzeCurrentVideo() async {
-        guard analysisProgress == nil, let url = currentMediaURL else { return }
-        analysisProgress = 0
-        let progress = ProgressBox()
-        let poll = Task { [weak self] in
-            while !Task.isCancelled {
-                self?.analysisProgress = progress.value
-                try? await Task.sleep(for: .milliseconds(250))
-            }
-        }
-        var analyzer = VideoAnalyzer()
-        analyzer.configuration = settings.ocrConfiguration
-        analyzer.hidesHUDText = settings.hideHUDText
-        do {
-            let report = try await analyzer.analyze(url: url) { progress.value = $0 }
-            translation.adoptTranscript(report.transcript)
-            analysisSummary = report.summary
-        } catch {
-            analysisSummary = "Analysis failed: \(error.localizedDescription)"
-        }
-        poll.cancel()
-        analysisProgress = nil
     }
 
     // MARK: - Benchmark

@@ -72,21 +72,16 @@ struct TranslationControllerTests {
         #expect(translator.calls.load(ordering: .relaxed) == 1)
     }
 
-    @Test func transcriptRecordsStableTextAndTranslation() async {
+    @Test func mediaTimeGoingBackwardsClearsTheScreen() async {
         let translator = TableTranslator(["鍵が必要です": "You need a key."])
         let controller = TranslationController(service: translator, metrics: PipelineMetrics(clock: AppleHostClock()),
                                                clock: AppleHostClock())
         await controller.refreshAvailability()
         for i in 0..<3 { controller.process(ocr("鍵が必要です", at: 30 + Double(i) * 0.2)) }
-        _ = await waitUntil(timeout: 5) { controller.transcript.entries.first?.english != nil }
-        let entry = controller.transcript.resolved.first
-        #expect(entry?.japanese == "鍵が必要です")
-        #expect(entry?.english == "You need a key.")
-        #expect(abs((entry?.start ?? 0) - 30) < 1e-6)
-        // Media time jumping backwards (loop/seek) resets on-screen state but keeps the transcript.
+        #expect(!controller.displayed.isEmpty)
+        // Loop or seek backwards: what was on screen is gone.
         controller.process(ocr("扉が開いた", at: 2))
         #expect(controller.displayed.isEmpty)
-        #expect(controller.transcript.entries.count == 1)
     }
 
     @Test func notInstalledShowsDownloadState() async {

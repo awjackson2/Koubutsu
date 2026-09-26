@@ -28,8 +28,6 @@ struct DisplayedText: Identifiable, Hashable {
 final class TranslationController {
     private(set) var displayed: [DisplayedText] = []
     private(set) var history = DialogueHistory()
-    /// Timestamped transcript of the current video (Video mode), on the media clock.
-    private(set) var transcript = TranscriptBuilder()
     @ObservationIgnored private var lastMediaTime: Double?
     private(set) var availability: TranslationAvailability?
     private(set) var statusMessage: String?
@@ -40,9 +38,6 @@ final class TranslationController {
     var targetLanguage = "en"
     var quality: TranslationQuality = .lowLatency
     var isEnabled = true
-    /// Suppress persistent HUD text (see `HUDFilter`).
-    var hidesHUDText = true
-    private(set) var hudFilter = HUDFilter()
 
     private var stabilizer = TextStabilizer()
     private var reportedDuplicates = 0
@@ -97,40 +92,10 @@ final class TranslationController {
         retryUntranslated()
     }
 
-    /// Source stopped or playback jumped: forget on-screen state; the transcript is kept but segmented.
+    /// Source stopped or playback jumped: forget what was on screen.
     func reset() {
         stabilizer.reset()
         displayed.removeAll()
-        transcript.discontinuity()
-        lastMediaTime = nil
-    }
-
-    /// Replaces the transcript with an offline analysis result and translates its lines.
-    func adoptTranscript(_ analyzed: TranscriptBuilder) {
-        transcript = analyzed
-        guard isEnabled, availability == nil || availability == .installed else { return }
-        let entries = analyzed.entries
-        let (source, target, quality) = (sourceLanguage, targetLanguage, quality)
-        Task {
-            for entry in entries where entry.english == nil {
-                let frame = FrameTiming(sequence: 0, presentationTime: MediaTime(seconds: entry.start),
-                                        hostTime: clock.now(), sourceSessionID: 0)
-                let stable = StableText(trackID: entry.trackID, text: entry.japanese,
-                                        key: TextNormalizer.key(entry.japanese), boundingBox: entry.boundingBox,
-                                        confidence: entry.confidence, lines: [], firstSeenFrame: frame,
-                                        stabilizedFrame: frame)
-                if let result = try? await coordinator.translate(stable, sourceLanguage: source,
-                                                                  targetLanguage: target, quality: quality) {
-                    transcript.translated(id: entry.id, english: result.translation)
-                }
-            }
-        }
-    }
-
-    /// A different video/source starts: new transcript.
-    func clearTranscript() {
-        transcript.removeAll()
-        hudFilter.reset()
         lastMediaTime = nil
     }
 
@@ -153,14 +118,11 @@ final class TranslationController {
         for event in events {
             switch event {
             case .stabilized(let stable):
-                if hidesHUDText, hudFilter.isHUD(stable) { continue }
                 history.record(stable)
-                transcript.stabilized(stable)
                 upsert(DisplayedText(stable: stable, status: .translating))
                 translate(stable)
             case .removed(let trackID), .invalidated(let trackID):
                 displayed.removeAll { $0.id == trackID }
-                transcript.ended(trackID: trackID, at: mediaTime)
             }
         }
     }
@@ -184,14 +146,13 @@ final class TranslationController {
             }
         }
         let context = TranslationContext(previousDialogue: history.context(before: stable.id),
-                                         speaker: stable.speaker, screenRegion: stable.boundingBox)
+                                         screenRegion: stable.boundingBox)
         let (source, target, quality) = (sourceLanguage, targetLanguage, quality)
         Task {
             do throws(KoubutsuCore.TranslationError) {
                 let result = try await coordinator.translate(stable, sourceLanguage: source, targetLanguage: target,
                                                              quality: quality, context: context)
                 history.setTranslation(result.translation, provider: result.provider, for: stable.id)
-                transcript.translated(id: stable.id, english: result.translation)
                 if setStatus(.translated(result.translation, fromCache: result.fromCache,
                                          latency: result.translationDuration), for: stable) {
                     metrics.translationDisplayed(frameHostTime: stable.firstSeenFrame.hostTime, at: clock.now())

@@ -1,11 +1,11 @@
 import KoubutsuCore
 import SwiftUI
 
-/// Video mode transport: play/pause, ±10 s, scrubber, loop, transcript, import. File sources only.
+/// Video mode transport: play/pause, ±10 s, scrubber, loop, import. File sources only; the video
+/// otherwise runs through exactly the same live pipeline as a capture device.
 struct VideoTransportBar: View {
     let model: AppModel
     @Binding var showingImporter: Bool
-    @Binding var showingTranscript: Bool
     @State private var scrubbing = false
     @State private var scrubTime: Double = 0
 
@@ -44,7 +44,6 @@ struct VideoTransportBar: View {
                 Button { Task { await model.setLooping(!status.loops) } } label: {
                     Image(systemName: status.loops ? "repeat.circle.fill" : "repeat.circle")
                 }
-                Button { showingTranscript = true } label: { Image(systemName: "text.bubble") }
                 Button { showingImporter = true } label: { Image(systemName: "square.and.arrow.down") }
             }
             .padding(.horizontal)

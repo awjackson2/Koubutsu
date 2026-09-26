@@ -15,13 +15,9 @@ public struct StableText: Sendable, Hashable, Identifiable {
     public var firstSeenFrame: FrameTiming
     /// Frame at which it was judged stable.
     public var stabilizedFrame: FrameTiming
-    /// Speaker label shown with the text, if any.
-    public var speaker: String?
 
     public init(trackID: UUID, text: String, key: String, boundingBox: NormalizedRect, confidence: Float,
-                lines: [RecognizedTextObservation], firstSeenFrame: FrameTiming, stabilizedFrame: FrameTiming,
-                speaker: String? = nil) {
-        self.speaker = speaker
+                lines: [RecognizedTextObservation], firstSeenFrame: FrameTiming, stabilizedFrame: FrameTiming) {
         self.trackID = trackID
         self.text = text
         self.key = key
@@ -143,8 +139,7 @@ public struct TextStabilizer: Sendable {
             events.append(.stabilized(StableText(
                 trackID: track.id, text: track.block.text, key: track.block.key,
                 boundingBox: track.block.boundingBox, confidence: track.block.confidence,
-                lines: track.block.lines, firstSeenFrame: track.firstSeenCurrentText, stabilizedFrame: result.frame,
-                speaker: track.block.speaker)))
+                lines: track.block.lines, firstSeenFrame: track.firstSeenCurrentText, stabilizedFrame: result.frame)))
         }
         return events
     }

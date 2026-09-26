@@ -1,6 +1,7 @@
-name: Footage analysis
-# Runs the OCR pipeline over external gameplay footage. The footage URL lives in the repository secret
-# DEMO_FOOTAGE_URL (never in the repo); the video itself is never committed or uploaded as an artifact.
+name: Footage screenshots
+# Runs the app on external gameplay footage (as a user-imported video) and captures screenshots of live
+# Japanese→English replacement. The footage URL comes from the footage_url input or the DEMO_FOOTAGE_URL
+# secret (masked); the video is never committed or uploaded as an artifact.
 on:
   workflow_dispatch:
     inputs:
@@ -8,25 +9,14 @@ on:
         description: Direct download URL of the footage (overrides the DEMO_FOOTAGE_URL secret; masked in logs)
         required: false
         default: ""
-      fps:
-        description: OCR samples per second of video
-        default: "1"
       screenshot_times:
-        description: Media times (s) to capture app screenshots at, space separated (empty = none)
-        default: ""
-      analyze:
-        description: Run the full-footage OCR analysis
-        default: "true"
-  push:
-    paths:
-      - "App/Video/VideoAnalyzer.swift"
-      - "AppTests/FootageAnalysisTests.swift"
-      - ".github/workflows/footage.yml"
+        description: Media times (s) to capture at, space separated
+        default: "12 106 274 314"
 concurrency:
   group: footage-${{ github.run_id }}
   cancel-in-progress: false
 jobs:
-  analyze:
+  screenshots:
     runs-on: macos-latest
     timeout-minutes: 90
     env:
@@ -34,43 +24,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Download footage
-        id: footage
         run: |
-          if [ -z "$FOOTAGE_URL" ]; then echo "DEMO_FOOTAGE_URL secret not set; skipping."; echo "present=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ -z "$FOOTAGE_URL" ]; then echo "::error::no footage URL"; exit 1; fi
           echo "::add-mask::$FOOTAGE_URL"
           mkdir -p "$RUNNER_TEMP/footage"
           curl -sSL --fail -o "$RUNNER_TEMP/footage/footage.mov" "$FOOTAGE_URL"
-          file "$RUNNER_TEMP/footage/footage.mov"
-          if ! file "$RUNNER_TEMP/footage/footage.mov" | grep -qiE "quicktime|mp4|iso media"; then echo "::error::download is not a video (check sharing)"; exit 1; fi
-          echo "present=true" >> "$GITHUB_OUTPUT"
+          file "$RUNNER_TEMP/footage/footage.mov" | grep -qiE "quicktime|mp4|iso media" || { echo "::error::download is not a video"; exit 1; }
       - name: Select Xcode
-        if: steps.footage.outputs.present == 'true'
         run: Tools/ci_select_xcode.sh
-      - name: Analyze footage
-        if: steps.footage.outputs.present == 'true' && github.event.inputs.analyze != 'false'
-        env:
-          TEST_RUNNER_KOUBUTSU_FOOTAGE: ${{ runner.temp }}/footage/footage.mov
-          TEST_RUNNER_KOUBUTSU_FOOTAGE_FPS: ${{ github.event.inputs.fps || '1' }}
-          XCODEBUILD_TIME_LIMIT: "5000"
-        run: mkdir -p build && Tools/ci_simulator_test.sh test -only-testing:KoubutsuTests/FootageAnalysisTests
-      - name: Report
-        if: always() && steps.footage.outputs.present == 'true' && github.event.inputs.analyze != 'false'
-        run: |
-          mkdir -p build/attachments
-          xcrun xcresulttool export attachments --path build/Koubutsu-test.xcresult --output-path build/attachments || true
-          find build/attachments -name "*.txt" -exec cat {} \;
       - name: App screenshots on the footage
-        if: steps.footage.outputs.present == 'true' && github.event.inputs.screenshot_times != ''
         run: Tools/ci_footage_screenshots.sh "$RUNNER_TEMP/footage/footage.mov" footage "${{ github.event.inputs.screenshot_times }}"
       - uses: actions/upload-artifact@v4
-        if: always() && steps.footage.outputs.present == 'true' && github.event.inputs.screenshot_times != ''
+        if: always()
         with:
           name: footage-screenshots
           path: build/footage-screenshots/
-          retention-days: 14
-      - uses: actions/upload-artifact@v4
-        if: always() && steps.footage.outputs.present == 'true'
-        with:
-          name: footage-report
-          path: build/attachments/
           retention-days: 14
