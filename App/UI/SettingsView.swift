@@ -70,6 +70,12 @@ struct SettingsView: View {
                 Section("Test video") {
                     Toggle("Loop test video", isOn: $settings.loopTestVideo)
                 }
+                Section("Licences") {
+                    Text("Dictionary data: JMdict and KANJIDIC2 by the Electronic Dictionary Research and Development Group, used under Creative Commons Attribution-ShareAlike 4.0. The bundled dictionary database is a conversion of these files and is distributed under the same licence.")
+                        .font(.footnote)
+                    Link("EDRDG licence", destination: URL(string: "https://www.edrdg.org/edrdg/licence.html")!)
+                    Link("JMdict project", destination: URL(string: "https://www.edrdg.org/jmdict/j_jmdict.html")!)
+                }
             }
             .navigationTitle("Settings")
             .toolbar {

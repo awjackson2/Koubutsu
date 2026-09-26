@@ -48,6 +48,7 @@ final class AppModel {
     /// Sampled, backpressured frames for OCR. Consumed from Phase 1.5.0.
     let processingTap: SampledFrameTap
     let ocrService = VisionOCRService()
+    let dictionary = DictionaryProvider()
     let translation: TranslationController
     let performance = PerformanceMonitor()
     private(set) var benchmarkReport: String?
@@ -106,6 +107,7 @@ final class AppModel {
             onError: { [weak self] error in self?.ocrStatus = error.description })
         Task { await checkOCRSupport() }
         Task { await translation.refreshAvailability() }
+        Task { await dictionary.load() }
     }
 
     private func checkOCRSupport() async {
