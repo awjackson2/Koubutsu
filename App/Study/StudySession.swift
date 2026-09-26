@@ -25,6 +25,13 @@ final class StudySession {
     private(set) var isTranslating = false
     /// The frozen source's media time, if any (for context when saving).
     private(set) var frameTiming: FrameTiming?
+    /// Dictionary matches for a tapped word, best first.
+    private(set) var words: [LookupResult] = []
+    /// Words of a dragged phrase.
+    private(set) var tokens: [LookupToken] = []
+
+    @ObservationIgnored private var lookup: DictionaryLookup?
+    @ObservationIgnored private var lookupTask: Task<Void, Never>?
 
     @ObservationIgnored private var translator: TranslationController?
     @ObservationIgnored private var translateTask: Task<Void, Never>?
@@ -36,8 +43,12 @@ final class StudySession {
     }
 
     /// Freezes `frame` and reads it.
-    func begin(frame: VideoFrame, ocr: VisionOCRService, translator: TranslationController) async {
+    func begin(frame: VideoFrame, ocr: VisionOCRService, translator: TranslationController,
+               dictionary: (any DictionaryStore)?) async {
         self.translator = translator
+        lookup = dictionary.map { DictionaryLookup(store: $0) }
+        words = []
+        tokens = []
         isActive = true
         phase = .recognizing
         observations = []
@@ -64,6 +75,9 @@ final class StudySession {
     func end() {
         isActive = false
         translateTask?.cancel()
+        lookupTask?.cancel()
+        words = []
+        tokens = []
         image = nil
         observations = []
         spans = []
@@ -78,6 +92,7 @@ final class StudySession {
         }
         spans = [span]
         translate(span.lineText)
+        lookUpWord(at: span)
     }
 
     func select(rect: NormalizedRect) {
@@ -88,10 +103,14 @@ final class StudySession {
         }
         spans = selected
         translate(StudySelection.joinedText(selected))
+        segment(StudySelection.joinedText(selected))
     }
 
     func clearSelection() {
         spans = []
+        words = []
+        tokens = []
+        lookupTask?.cancel()
         translation = nil
         translatedSource = nil
         translateTask?.cancel()
@@ -104,6 +123,40 @@ final class StudySession {
             let boxes = CharacterLayout.boxes(for: observation)
             guard span.range.upperBound <= boxes.count else { return nil }
             return boxes[span.range].dropFirst().reduce(boxes[span.range.lowerBound]) { $0.union($1) }
+        }
+    }
+
+    /// Looks up the word starting at the tapped character and widens the highlight to the whole word.
+    private func lookUpWord(at span: SelectedSpan) {
+        lookupTask?.cancel()
+        words = []
+        tokens = []
+        guard let lookup else { return }
+        let characters = Array(span.lineText)
+        let start = span.range.lowerBound
+        let rest = String(characters[start...])
+        lookupTask = Task {
+            let results = await Task.detached(priority: .userInitiated) { lookup.word(at: rest) }.value
+            guard !Task.isCancelled, spans.first?.observationID == span.observationID,
+                  spans.first?.range.lowerBound == start else { return }
+            words = results
+            if let first = results.first {
+                let end = min(characters.count, start + first.matched.count)
+                spans = [SelectedSpan(observationID: span.observationID, range: start..<end,
+                                      text: String(characters[start..<end]), lineText: span.lineText)]
+            }
+        }
+    }
+
+    private func segment(_ text: String) {
+        lookupTask?.cancel()
+        words = []
+        tokens = []
+        guard let lookup else { return }
+        lookupTask = Task {
+            let result = await Task.detached(priority: .userInitiated) { lookup.segment(text) }.value
+            guard !Task.isCancelled, selectedText == text else { return }
+            tokens = result
         }
     }
 

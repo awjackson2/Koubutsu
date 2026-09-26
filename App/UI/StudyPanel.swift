@@ -31,6 +31,21 @@ struct StudyPanel: View {
                            line != session.selectedText {
                             Text(context(line)).font(.title3)
                         }
+                        if let best = session.words.first {
+                            WordSummary(result: best)
+                            if session.words.count > 1 {
+                                Text("Also: " + session.words.dropFirst().prefix(4)
+                                    .map { "\($0.headword)【\($0.reading)】" }.joined(separator: "  "))
+                                    .font(.callout).foregroundStyle(.secondary)
+                            }
+                        }
+                        if !session.tokens.isEmpty {
+                            ForEach(Array(session.tokens.enumerated()), id: \.offset) { _, token in
+                                if let best = token.results.first {
+                                    WordSummary(result: best, compact: true)
+                                }
+                            }
+                        }
                         if session.isTranslating {
                             ProgressView().controlSize(.small)
                         } else if let translation = session.translation {
@@ -76,5 +91,31 @@ struct StudyPanel: View {
             attributed[start..<end].font = .title3.bold()
         }
         return attributed
+    }
+}
+
+/// Headword, reading, conjugation and the first meanings of a dictionary match.
+struct WordSummary: View {
+    let result: LookupResult
+    var compact = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(result.headword).font(compact ? .title3.weight(.semibold) : .title2.weight(.semibold))
+                if result.reading != result.headword {
+                    Text(result.reading).font(compact ? .callout : .title3).foregroundStyle(.secondary)
+                }
+                if !result.reasons.isEmpty {
+                    Text(result.reasons.joined(separator: " → "))
+                        .font(.caption).padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Color.cyan.opacity(0.25), in: Capsule())
+                }
+            }
+            Text(result.entry.senses.prefix(compact ? 1 : 3).enumerated()
+                .map { "\($0.offset + 1). " + $0.element.glosses.prefix(3).joined(separator: "; ") }
+                .joined(separator: "  "))
+                .font(compact ? .callout : .body)
+        }
     }
 }

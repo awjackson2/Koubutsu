@@ -103,7 +103,8 @@ struct RootView: View {
         }
         guard let frame = model.pipeline.latestFrame else { return }
         resumeAfterStudy = await model.pauseForStudy()
-        await study.begin(frame: frame, ocr: model.ocrService, translator: model.translation)
+        await study.begin(frame: frame, ocr: model.ocrService, translator: model.translation,
+                          dictionary: model.dictionary.store)
     }
 
     /// `--study-after=` / `--study-select=` (CI screenshots of study mode).

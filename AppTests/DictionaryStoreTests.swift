@@ -18,4 +18,13 @@ struct DictionaryStoreTests {
         #expect(teki.strokes == 15 && teki.meanings.contains("enemy"))
         #expect(store.entries(forKey: "zzzz").isEmpty)
     }
+
+    @Test func lookupOnTheBundledDictionary() throws {
+        let lookup = DictionaryLookup(store: try SQLiteDictionaryStore.open())
+        let eaten = try #require(lookup.word(at: "食べさせられた。").first)
+        #expect(eaten.dictionaryForm == "食べる" && eaten.matched == "食べさせられた")
+        #expect(lookup.word(at: "行ったことがある").first?.dictionaryForm == "行く")
+        let words = lookup.segment("この先には強い敵がいる。").map(\.text)
+        #expect(words.contains("敵") && words.contains("強い") && words.contains("が"))
+    }
 }
