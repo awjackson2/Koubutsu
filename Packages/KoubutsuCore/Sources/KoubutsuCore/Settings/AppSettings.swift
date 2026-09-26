@@ -17,6 +17,14 @@ public struct AppSettings: Sendable, Hashable, Codable {
         case higherQuality
     }
 
+    /// What the overlay draws over recognized Japanese.
+    public enum OverlayStyle: String, Sendable, Codable, CaseIterable, Hashable {
+        /// Replace the Japanese with English in place.
+        case english
+        /// Keep the Japanese; readings above kanji, words being learned underlined.
+        case furigana
+    }
+
     public enum RegionOfInterestMode: String, Sendable, Codable, CaseIterable, Hashable {
         case fullFrame
         case dialogue
@@ -39,6 +47,7 @@ public struct AppSettings: Sendable, Hashable, Codable {
     public var keepScreenAwake: Bool = true
     /// Size of the English in replacement boxes, relative to the default (clamped to `overlayTextScaleRange`).
     public var overlayTextScale: Double = 1.0
+    public var overlayStyle: OverlayStyle = .english
     public var regionOfInterestMode: RegionOfInterestMode = .fullFrame
     public var customRegionOfInterest: NormalizedRect = .init(x: 0, y: 0.6, width: 1, height: 0.4)
     public var loopTestVideo: Bool = true
@@ -87,6 +96,7 @@ public struct AppSettings: Sendable, Hashable, Codable {
         s.keepScreenAwake = try c.decodeIfPresent(Bool.self, forKey: .keepScreenAwake) ?? s.keepScreenAwake
         let textScale = try c.decodeIfPresent(Double.self, forKey: .overlayTextScale) ?? s.overlayTextScale
         s.overlayTextScale = min(max(textScale, Self.overlayTextScaleRange.lowerBound), Self.overlayTextScaleRange.upperBound)
+        s.overlayStyle = (try? c.decodeIfPresent(OverlayStyle.self, forKey: .overlayStyle)) ?? s.overlayStyle
         s.regionOfInterestMode = (try? c.decodeIfPresent(RegionOfInterestMode.self, forKey: .regionOfInterestMode)) ?? s.regionOfInterestMode
         s.customRegionOfInterest = try c.decodeIfPresent(NormalizedRect.self, forKey: .customRegionOfInterest) ?? s.customRegionOfInterest
         s.loopTestVideo = try c.decodeIfPresent(Bool.self, forKey: .loopTestVideo) ?? s.loopTestVideo

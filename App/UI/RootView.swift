@@ -19,6 +19,7 @@ struct RootView: View {
     /// Press-and-hold on the video: show the original Japanese.
     @State private var peeking = false
     @State private var study = StudySession()
+    @State private var readingAids = ReadingAidModel()
     /// A file source was playing when study mode froze it.
     @State private var resumeAfterStudy = false
     @Environment(\.scenePhase) private var scenePhase
@@ -93,6 +94,13 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             Task { await model.scenePhaseChanged(phase) }
         }
+        .onChange(of: model.wordBank.bank, initial: true) { _, bank in
+            readingAids.setVocabulary(known: bank.knownHeadwords, learning: bank.learningHeadwords)
+        }
+        .onChange(of: model.dictionary.state) { _, _ in
+            readingAids.setVocabulary(known: model.wordBank.bank.knownHeadwords,
+                                      learning: model.wordBank.bank.learningHeadwords)
+        }
         .onChange(of: model.settings.keepScreenAwake && model.isRunning, initial: true) { _, awake in
             UIApplication.shared.isIdleTimerDisabled = awake
         }
@@ -101,12 +109,24 @@ struct RootView: View {
     private var shortcutActions: KeyboardShortcuts.Actions {
         KeyboardShortcuts.Actions(
             toggleFullScreen: { toggleFullScreen() },
-            toggleEnglish: { model.settings.showTranslation.toggle() },
+            toggleEnglish: { cycleOverlay() },
             toggleStudy: { Task { await toggleStudy() } },
             showWordBank: { showingWordBank = true },
             showReview: { showingReview = true },
             showRecentLines: { showingRecentLines = true },
             showSettings: { showingSettings = true })
+    }
+
+    /// English → furigana → original Japanese → English.
+    private func cycleOverlay() {
+        if !model.settings.showTranslation {
+            model.settings.showTranslation = true
+            model.settings.overlayStyle = .english
+        } else if model.settings.overlayStyle == .english {
+            model.settings.overlayStyle = .furigana
+        } else {
+            model.settings.showTranslation = false
+        }
     }
 
     private func toggleStudy() async {
@@ -119,7 +139,7 @@ struct RootView: View {
         guard let frame = model.pipeline.latestFrame else { return }
         resumeAfterStudy = await model.pauseForStudy()
         await study.begin(frame: frame, ocr: model.ocrService, translator: model.translation,
-                          dictionary: model.dictionary.store)
+                          lookup: model.dictionary.lookup)
     }
 
     /// `--study-after=` / `--study-select=` (CI screenshots of study mode).
@@ -168,7 +188,11 @@ struct RootView: View {
                                  showBoxes: model.settings.showOCRBoxes,
                                  showTranslations: model.settings.displayMode != .panel
                                      && model.settings.showTranslation && !peeking,
-                                 textScale: model.settings.overlayTextScale)
+                                 textScale: model.settings.overlayTextScale,
+                                 style: model.settings.overlayStyle,
+                                 annotations: { line in
+                                     readingAids.annotations(for: line, lookup: model.dictionary.lookup)
+                                 })
             }
             .overlay(alignment: .center) { sourceMessage }
             .overlay {
@@ -227,7 +251,8 @@ struct RootView: View {
                 }
                 ControlBar(model: model, isFullScreen: isFullScreen, showingImporter: $showingImporter,
                            showingSettings: $showingSettings, showingRecentLines: $showingRecentLines,
-                           showingWordBank: $showingWordBank, toggleFullScreen: toggleFullScreen,
+                           showingWordBank: $showingWordBank, cycleOverlay: cycleOverlay,
+                           toggleFullScreen: toggleFullScreen,
                            toggleStudy: { Task { await toggleStudy() } })
             }
         }
@@ -252,6 +277,7 @@ private struct ControlBar: View {
     @Binding var showingSettings: Bool
     @Binding var showingRecentLines: Bool
     @Binding var showingWordBank: Bool
+    let cycleOverlay: () -> Void
     let toggleFullScreen: () -> Void
     let toggleStudy: () -> Void
 
@@ -281,13 +307,10 @@ private struct ControlBar: View {
             } label: {
                 Image(systemName: model.isRunning ? "stop.fill" : "play.fill")
             }
-            Button {
-                model.settings.showTranslation.toggle()
-            } label: {
-                Label(model.settings.showTranslation ? "English" : "Japanese",
-                      systemImage: model.settings.showTranslation ? "character.bubble.fill" : "character.bubble")
+            Button(action: cycleOverlay) {
+                Label(overlayLabel.title, systemImage: overlayLabel.icon)
             }
-            .help("Show English or the original Japanese (T)")
+            .help("English → furigana → original Japanese (T)")
             Menu {
                 Toggle("English over Japanese", isOn: settingBinding(\.showTranslation))
                 Toggle("Japanese text list", isOn: settingBinding(\.showRecognizedText))
@@ -334,6 +357,11 @@ private struct ControlBar: View {
         .padding(.horizontal)
         .padding(.vertical, 8)
         .background(.bar)
+    }
+
+    private var overlayLabel: (title: String, icon: String) {
+        if !model.settings.showTranslation { return ("Japanese", "character.bubble") }
+        return model.settings.overlayStyle == .english ? ("English", "character.bubble.fill") : ("Furigana", "textformat.size.ja")
     }
 
     private func settingBinding(_ keyPath: WritableKeyPath<AppSettings, Bool>) -> Binding<Bool> {

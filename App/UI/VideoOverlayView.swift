@@ -11,6 +11,9 @@ struct VideoOverlayView: View {
     let showTranslations: Bool
     /// User text-size setting for the English in replacement boxes.
     var textScale: Double = 1
+    var style: AppSettings.OverlayStyle = .english
+    /// Furigana/highlights per line text (furigana style).
+    var annotations: (String) -> [ReadingAnnotation]? = { _ in nil }
 
     private var layout: OverlayLayout { OverlayLayout(textScale: textScale) }
 
@@ -24,7 +27,10 @@ struct VideoOverlayView: View {
                         ocrBoxes(ocr, mapper: mapper)
                     }
                     if showTranslations {
-                        translations(mapper: mapper)
+                        switch style {
+                        case .english: translations(mapper: mapper)
+                        case .furigana: readingAids(mapper: mapper)
+                        }
                     }
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
@@ -71,6 +77,41 @@ struct VideoOverlayView: View {
                     .frame(width: placement.frame.width, height: placement.frame.height, alignment: .leading)
                     .background(Color(white: 0.06), in: RoundedRectangle(cornerRadius: 4))
                     .offset(x: placement.frame.x, y: placement.frame.y)
+            }
+        }
+    }
+}
+
+extension VideoOverlayView {
+    /// Furigana above kanji runs and underlines under words being learned, on the original Japanese.
+    private func readingAids(mapper: CoordinateMapper) -> some View {
+        let lines = displayed.flatMap(\.stable.lines)
+        let marks: [(id: String, rect: PlaneRect, reading: String?, learning: Bool)] = lines.flatMap { line in
+            let boxes = CharacterLayout.boxes(for: line)
+            return (annotations(line.text) ?? []).compactMap { annotation in
+                guard annotation.range.upperBound <= boxes.count, !annotation.range.isEmpty else { return nil }
+                let box = boxes[annotation.range].dropFirst().reduce(boxes[annotation.range.lowerBound]) { $0.union($1) }
+                return ("\(line.id)-\(annotation.range)-\(annotation.reading ?? "_")", mapper.viewRect(for: box),
+                        annotation.reading, annotation.isLearning)
+            }
+        }
+        return ForEach(marks, id: \.id) { mark in
+            if let reading = mark.reading {
+                let size = max(9, min(28, mark.rect.height * 0.42 * textScale))
+                Text(reading)
+                    .font(.system(size: size, weight: .semibold))
+                    .foregroundStyle(mark.learning ? Color.yellow : Color.white)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.horizontal, 3)
+                    .background(Color.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 3))
+                    .frame(width: max(mark.rect.width, 1), height: size * 1.3)
+                    .offset(x: mark.rect.x, y: mark.rect.y - size * 1.35)
+            } else {
+                Rectangle()
+                    .fill(Color.yellow)
+                    .frame(width: mark.rect.width, height: max(2, mark.rect.height * 0.08))
+                    .offset(x: mark.rect.x, y: mark.rect.maxY + 1)
             }
         }
     }

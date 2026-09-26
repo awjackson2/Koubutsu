@@ -82,6 +82,7 @@ struct LaunchOptions {
     var showDebug: Bool?
     /// Start in full screen (automation screenshots).
     var fullScreen = false
+    var overlayStyle: AppSettings.OverlayStyle?
     /// Enter study mode this many seconds after launch (automation screenshots).
     var studyAfter: Double?
     /// Then select this normalized rect: `x,y,w,h`.
@@ -103,6 +104,7 @@ struct LaunchOptions {
             case "--hide-debug": showDebug = false
             case "--show-debug": showDebug = true
             case "--full-screen": fullScreen = true
+            case "--furigana": overlayStyle = .furigana
             default:
                 if arg.hasPrefix("--select-video=") { selectVideo = String(arg.dropFirst("--select-video=".count)) }
                 if arg.hasPrefix("--start-at=") { startAt = Double(arg.dropFirst("--start-at=".count)) }
@@ -127,6 +129,7 @@ struct LaunchOptions {
     func apply(to settings: inout AppSettings) {
         if resetSettings { settings = AppSettings() }
         if let displayMode { settings.displayMode = displayMode }
+        if let overlayStyle { settings.overlayStyle = overlayStyle }
         if let showBoxes { settings.showOCRBoxes = showBoxes }
         if let showDebug {
             settings.showDebugStatistics = showDebug

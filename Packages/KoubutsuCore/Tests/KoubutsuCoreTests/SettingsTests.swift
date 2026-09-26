@@ -12,6 +12,7 @@ struct SettingsTests {
         #expect(!s.showDebugStatistics && !s.showRecognizedText)
         #expect(s.keepScreenAwake)
         #expect(s.overlayTextScale == 1)
+        #expect(s.overlayStyle == .english)
     }
 
     @Test func clampsTextScale() throws {

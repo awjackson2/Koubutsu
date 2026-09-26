@@ -47,9 +47,9 @@ final class StudySession {
 
     /// Freezes `frame` and reads it.
     func begin(frame: VideoFrame, ocr: VisionOCRService, translator: TranslationController,
-               dictionary: (any DictionaryStore)?) async {
+               lookup: DictionaryLookup?) async {
         self.translator = translator
-        lookup = dictionary.map { DictionaryLookup(store: $0) }
+        self.lookup = lookup
         words = []
         tokens = []
         isActive = true
