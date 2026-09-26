@@ -9,12 +9,13 @@ import QuartzCore
 /// Frames therefore go through exactly the same downstream path as live capture frames.
 ///
 /// Threading: player objects are created and controlled on the main actor; pulling happens on `pullQueue`.
-final class TestVideoSource: VideoSource, @unchecked Sendable {
+final class TestVideoSource: VideoSource, PlaybackControlling, @unchecked Sendable {
     typealias Frame = VideoFrame
 
     let kind = VideoSourceKind.testVideo
     let url: URL
     let displayName: String
+    /// Initial looping preference; changed at runtime through `setLooping`.
     let loops: Bool
 
     private let handlers = SourceHandlers<VideoFrame>()
@@ -24,6 +25,9 @@ final class TestVideoSource: VideoSource, @unchecked Sendable {
     @MainActor private var player: AVPlayer?
     @MainActor private var endObserver: NSObjectProtocol?
     @MainActor private var statusObservation: NSKeyValueObservation?
+    @MainActor private var isLooping = true
+    /// Duration of the current item in seconds, loaded in `prepareAndPlay`.
+    @MainActor private var duration: Double = 0
 
     // pullQueue state.
     private var output: AVPlayerItemVideoOutput?
@@ -95,6 +99,9 @@ final class TestVideoSource: VideoSource, @unchecked Sendable {
         } catch {
             throw .mediaUnreadable(error.localizedDescription)
         }
+        if let assetDuration = try? await asset.load(.duration), assetDuration.isNumeric {
+            duration = assetDuration.seconds
+        }
         let oriented = naturalSize.applying(transform)
         let format = VideoFormat(size: PixelSize(width: Int(abs(oriented.width)), height: Int(abs(oriented.height))),
                                  nominalFrameRate: Double(nominalFrameRate > 0 ? nominalFrameRate : 60),
@@ -110,6 +117,7 @@ final class TestVideoSource: VideoSource, @unchecked Sendable {
     @MainActor
     private func play(_ item: AVPlayerItem) {
         let player = AVPlayer(playerItem: item)
+        isLooping = loops
         player.actionAtItemEnd = loops ? .none : .pause
         player.automaticallyWaitsToMinimizeStalling = false
         self.player = player
@@ -135,12 +143,48 @@ final class TestVideoSource: VideoSource, @unchecked Sendable {
     @MainActor
     private func handleEnd() {
         guard let player else { return }
-        if loops {
+        if isLooping {
             player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
             player.play()
-        } else {
-            Task { await self.stop() }
         }
+        // Not looping: the player pauses on the last frame (actionAtItemEnd = .pause); the source stays
+        // running so the user can seek back.
+    }
+
+    // MARK: - PlaybackControlling (Video mode)
+
+    @MainActor
+    func play() {
+        guard let player else { return }
+        if duration > 0, player.currentTime().seconds >= duration - 0.05 {
+            player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
+        }
+        player.play()
+    }
+
+    @MainActor
+    func pause() { player?.pause() }
+
+    @MainActor
+    func seek(to seconds: Double) async {
+        guard let player else { return }
+        let status = PlaybackStatus(isPlaying: false, currentTime: 0, duration: duration, loops: isLooping)
+        let target = CMTime(seconds: status.clamped(seconds), preferredTimescale: 600)
+        await player.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero)
+    }
+
+    @MainActor
+    func setLooping(_ loops: Bool) {
+        isLooping = loops
+        player?.actionAtItemEnd = loops ? .none : .pause
+    }
+
+    @MainActor
+    func playbackStatus() -> PlaybackStatus {
+        guard let player else { return PlaybackStatus(isPlaying: false, currentTime: 0, duration: 0, loops: isLooping) }
+        let time = player.currentTime()
+        return PlaybackStatus(isPlaying: player.rate != 0, currentTime: time.isValid ? time.seconds : 0,
+                              duration: duration, loops: isLooping)
     }
 
     @MainActor
