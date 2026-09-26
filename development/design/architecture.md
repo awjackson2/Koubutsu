@@ -1,6 +1,6 @@
 # Architecture
 
-Last synced: Phase 7.8.0 (2026-09-26)
+Last synced: Phase 8.6.0 (2026-09-26)
 
 ## Layers
 
@@ -91,6 +91,36 @@ Full screen (`RootView.isFullScreen`) removes the chrome overlay and the status 
 the chrome for 4 s. Holding on the stage hides the replacement overlay (peek at the original). Keyboard shortcuts
 are invisible buttons kept in the hierarchy so they work with the chrome hidden. The idle timer is disabled
 while a source runs (`keepScreenAwake`).
+
+## Study mode (Major 8)
+
+```
+Study button (S) ── FramePipeline.latestFrame ──► StudySession
+                                                   │ CGImage copy (display) + VisionOCRService(.study:
+                                                   │   accurate, per-character boxes via RecognizedText.boundingBox(for:))
+                                                   ▼
+StudyView (frozen image, outlines, tap/drag, loupe) ─► StudySelection (CharacterLayout) ─► SelectedSpan
+                                                   │
+             DictionaryLookup (Deinflector + DictionaryStore) ◄── DictionaryProvider (SQLite, unpacked once)
+                    │ word(at:) for a tap · segment(_:) for a drag
+                    ▼
+StudyPanel ─► WordCardView (Furigana, Romaji, DictionaryLabels, KANJIDIC2, Speaker, system dictionary)
+                    │ Save
+                    ▼
+WordBankStore (Documents/WordBank: JSON + line crops) ─► WordBankView · ReviewView (FSRS) · AnkiExport
+                    │ known / learning headwords
+                    ▼
+ReadingAidModel (segment + ReadingAid per line, cached) ─► VideoOverlayView furigana style
+```
+
+- Freezing never touches the display path: the live pipeline keeps running; the frozen image is drawn on top.
+  File sources pause and resume.
+- Dictionary: `Tools/build_dictionary.py` → `App/Resources/Dictionary/koubutsu_dictionary.sqlite.deflate`
+  (JMdict + KANJIDIC2, CC BY-SA 4.0, attribution in Settings and `docs/licences.md`); keys are kana-folded forms.
+- Lookup: suffix de-inflection rules with word-type constraints; tap = first word of the lowest-cost
+  segmentation (words 1, kana-for-kanji 1.5, unknown characters 2), then all other matches.
+- Overlay style: English (replace) or furigana (keep Japanese; readings over kanji runs, learning words
+  underlined, known words bare). T cycles English → furigana → original.
 
 ## Coordinate convention
 
