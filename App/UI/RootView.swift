@@ -29,11 +29,20 @@ struct RootView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            // The stage depends only on the window: chrome below overlays it and never resizes the video.
-            let stage = VideoStageLayout.stage(containerWidth: geometry.size.width,
-                                               containerHeight: geometry.size.height)
+            // The stage depends only on the window (and full screen): chrome below overlays it and never resizes
+            // the video. Outside full screen it sits inside the monitor housing (9.4.0).
+            let insets = isFullScreen ? VideoStageLayout.StageInsets.zero
+                : VideoStageLayout.windowedInsets(safeTop: geometry.safeAreaInsets.top)
+            let stage = VideoStageLayout.framed(containerWidth: geometry.size.width,
+                                                containerHeight: geometry.size.height, insets: insets)
             ZStack(alignment: .topLeading) {
                 Color.black
+                if !isFullScreen {
+                    MonitorFrame(stage: CGRect(x: stage.x, y: stage.y, width: stage.width, height: stage.height),
+                                 sourceLabel: model.selection?.label, isRunning: model.isRunning,
+                                 bottomInset: insets.bottom)
+                        .transition(.opacity)
+                }
                 videoStage
                     .frame(width: stage.width, height: stage.height)
                     .contentShape(Rectangle())
@@ -69,6 +78,7 @@ struct RootView: View {
         .persistentSystemOverlays(.hidden)
         .statusBarHidden(isFullScreen)
         .animation(.easeInOut(duration: 0.2), value: showsChrome)
+        .animation(K.reveal, value: isFullScreen)
         .animation(K.reveal, value: study.isActive)
         .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.movie, .mpeg4Movie, .quickTimeMovie]) { result in
             if case .success(let url) = result {

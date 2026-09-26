@@ -20,4 +20,30 @@ struct VideoStageLayoutTests {
         #expect(a == b)
         #expect(VideoStageLayout.stage(containerWidth: 0, containerHeight: 100) == .zero)
     }
+
+    @Test func framedStageSitsInsideTheHousing() {
+        let insets = VideoStageLayout.windowedInsets(safeTop: 24)
+        #expect(insets.top == 54)
+        let stage = VideoStageLayout.framed(containerWidth: 1180, containerHeight: 820, insets: insets)
+        #expect(stage.x == 18)
+        #expect(stage.y == 54)
+        #expect(abs(stage.width - 1144) < 1e-9)
+        #expect(abs(stage.height - 1144 * 9 / 16) < 1e-9)
+    }
+
+    @Test func framedStageClampsAndCentresInShortContainers() {
+        let insets = VideoStageLayout.StageInsets(top: 50, left: 20, bottom: 10, right: 20)
+        let stage = VideoStageLayout.framed(containerWidth: 2000, containerHeight: 960, insets: insets)
+        #expect(stage.height == 900)
+        #expect(abs(stage.width - 1600) < 1e-9)
+        #expect(abs(stage.x - 200) < 1e-9)
+        #expect(stage.y == 50)
+    }
+
+    @Test func windowedInsetsFloorTheStatusBar() {
+        #expect(VideoStageLayout.windowedInsets(safeTop: 0).top == 54)
+        #expect(VideoStageLayout.windowedInsets(safeTop: 32).top == 62)
+        #expect(VideoStageLayout.framed(containerWidth: 30, containerHeight: 100,
+                                        insets: VideoStageLayout.windowedInsets(safeTop: 0)) == .zero)
+    }
 }
