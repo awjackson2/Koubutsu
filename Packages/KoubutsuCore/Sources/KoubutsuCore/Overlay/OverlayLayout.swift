@@ -48,6 +48,12 @@ public struct OverlayLayout: Sendable {
 
     public init() {}
 
+    /// Layout with English text scaled by `textScale` (user setting): nominal and maximum font both scale.
+    public init(textScale: Double) {
+        fontScale *= textScale
+        fontSizeRange = fontSizeRange.lowerBound...(fontSizeRange.upperBound * max(textScale, 0.1))
+    }
+
     /// Nominal font for a Japanese box: proportional to its line height.
     public func nominalFontSize(sourceHeight: Double, lineCount: Int) -> Double {
         let jpLineHeight = sourceHeight / Double(max(1, lineCount))

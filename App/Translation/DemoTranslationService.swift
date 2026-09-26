@@ -80,6 +80,8 @@ struct LaunchOptions {
     var displayMode: AppSettings.DisplayMode?
     var showBoxes: Bool?
     var showDebug: Bool?
+    /// Start in full screen (automation screenshots).
+    var fullScreen = false
 
     static let current = LaunchOptions(arguments: CommandLine.arguments)
 
@@ -92,6 +94,7 @@ struct LaunchOptions {
             case "--show-boxes": showBoxes = true
             case "--hide-debug": showDebug = false
             case "--show-debug": showDebug = true
+            case "--full-screen": fullScreen = true
             default:
                 if arg.hasPrefix("--select-video=") { selectVideo = String(arg.dropFirst("--select-video=".count)) }
                 if arg.hasPrefix("--start-at=") { startAt = Double(arg.dropFirst("--start-at=".count)) }
@@ -107,6 +110,9 @@ struct LaunchOptions {
         if resetSettings { settings = AppSettings() }
         if let displayMode { settings.displayMode = displayMode }
         if let showBoxes { settings.showOCRBoxes = showBoxes }
-        if let showDebug { settings.showDebugStatistics = showDebug }
+        if let showDebug {
+            settings.showDebugStatistics = showDebug
+            settings.showRecognizedText = showDebug
+        }
     }
 }

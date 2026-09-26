@@ -1,13 +1,24 @@
 import KoubutsuCore
 import SwiftUI
 import Translation
+import UIKit
 import UniformTypeIdentifiers
 
 struct RootView: View {
     @State private var model = AppModel()
     @State private var showingImporter = false
     @State private var showingSettings = false
+    @State private var showingRecentLines = false
+    /// Full screen hides every bar and panel; the video stage itself never changes (7.6.4).
+    @State private var isFullScreen = LaunchOptions.current.fullScreen
+    /// In full screen, controls revealed by a tap (auto-hidden).
+    @State private var chromeRevealed = false
+    @State private var hideChromeTask: Task<Void, Never>?
+    /// Press-and-hold on the video: show the original Japanese.
+    @State private var peeking = false
     @Environment(\.scenePhase) private var scenePhase
+
+    private var showsChrome: Bool { !isFullScreen || chromeRevealed }
 
     var body: some View {
         GeometryReader { geometry in
@@ -18,18 +29,31 @@ struct RootView: View {
                 Color.black
                 videoStage
                     .frame(width: stage.width, height: stage.height)
+                    .contentShape(Rectangle())
+                    .onTapGesture { stageTapped() }
+                    .onLongPressGesture(minimumDuration: 0.25, maximumDistance: 30) {
+                        peeking = true
+                    } onPressingChanged: { pressing in
+                        if !pressing { peeking = false }
+                    }
                     .offset(x: stage.x, y: stage.y)
-                VStack(spacing: 0) {
-                    Spacer(minLength: 0)
-                    chrome
+                if showsChrome {
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        chrome
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .transition(.opacity)
                 }
-                .frame(width: geometry.size.width, height: geometry.size.height)
             }
+            .background { KeyboardShortcuts(model: model, actions: shortcutActions) }
         }
         .background(Color.black)
         .ignoresSafeArea(edges: .top)
         .preferredColorScheme(.dark)
         .persistentSystemOverlays(.hidden)
+        .statusBarHidden(isFullScreen)
+        .animation(.easeInOut(duration: 0.2), value: showsChrome)
         .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.movie, .mpeg4Movie, .quickTimeMovie]) { result in
             if case .success(let url) = result {
                 Task { await model.importVideo(from: url) }
@@ -42,12 +66,48 @@ struct RootView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView(settings: $model.settings)
         }
+        .sheet(isPresented: $showingRecentLines) {
+            RecentLinesView(controller: model.translation)
+        }
         .task {
             await model.start()
             await model.applyLaunchPlayback()
         }
         .onChange(of: scenePhase) { _, phase in
             Task { await model.scenePhaseChanged(phase) }
+        }
+        .onChange(of: model.settings.keepScreenAwake && model.isRunning, initial: true) { _, awake in
+            UIApplication.shared.isIdleTimerDisabled = awake
+        }
+    }
+
+    private var shortcutActions: KeyboardShortcuts.Actions {
+        KeyboardShortcuts.Actions(
+            toggleFullScreen: { toggleFullScreen() },
+            toggleEnglish: { model.settings.showTranslation.toggle() },
+            showRecentLines: { showingRecentLines = true },
+            showSettings: { showingSettings = true })
+    }
+
+    private func stageTapped() {
+        guard isFullScreen else { return }
+        chromeRevealed.toggle()
+        scheduleChromeHide()
+    }
+
+    private func toggleFullScreen() {
+        isFullScreen.toggle()
+        chromeRevealed = false
+        hideChromeTask?.cancel()
+    }
+
+    private func scheduleChromeHide() {
+        hideChromeTask?.cancel()
+        guard isFullScreen, chromeRevealed else { return }
+        hideChromeTask = Task {
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            chromeRevealed = false
         }
     }
 
@@ -61,9 +121,19 @@ struct RootView: View {
                                  displayed: translationController.displayed,
                                  showBoxes: model.settings.showOCRBoxes,
                                  showTranslations: model.settings.displayMode != .panel
-                                     && model.settings.showTranslation)
+                                     && model.settings.showTranslation && !peeking,
+                                 textScale: model.settings.overlayTextScale)
             }
             .overlay(alignment: .center) { sourceMessage }
+            .overlay(alignment: .top) {
+                if peeking {
+                    Text("Original")
+                        .font(.caption.bold())
+                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .background(.black.opacity(0.6), in: Capsule())
+                        .padding(.top, 8)
+                }
+            }
     }
 
     /// Bars and panels, bottom-anchored over the space below the stage. Panels have fixed heights.
@@ -87,7 +157,7 @@ struct RootView: View {
                     .padding(.vertical, 8)
                     .background(Color(white: 0.05))
             }
-            if model.settings.showDebugStatistics {
+            if model.settings.showRecognizedText {
                 ScrollView {
                     RecognizedTextPanel(result: model.latestOCR, status: model.ocrStatus)
                         .padding(.horizontal)
@@ -95,13 +165,18 @@ struct RootView: View {
                 }
                 .frame(height: 140)
                 .background(Color(white: 0.08))
+            }
+            if model.settings.showDebugStatistics {
                 DebugPanel(model: model)
                     .padding(.horizontal)
                     .padding(.vertical, 6)
                     .background(Color(white: 0.08))
             }
-            ControlBar(model: model, showingImporter: $showingImporter, showingSettings: $showingSettings)
+            ControlBar(model: model, isFullScreen: isFullScreen, showingImporter: $showingImporter,
+                       showingSettings: $showingSettings, showingRecentLines: $showingRecentLines,
+                       toggleFullScreen: toggleFullScreen)
         }
+        .simultaneousGesture(TapGesture().onEnded { scheduleChromeHide() })
     }
 
     @ViewBuilder private var sourceMessage: some View {
@@ -117,8 +192,11 @@ struct RootView: View {
 
 private struct ControlBar: View {
     let model: AppModel
+    let isFullScreen: Bool
     @Binding var showingImporter: Bool
     @Binding var showingSettings: Bool
+    @Binding var showingRecentLines: Bool
+    let toggleFullScreen: () -> Void
 
     var body: some View {
         HStack(spacing: 16) {
@@ -147,6 +225,34 @@ private struct ControlBar: View {
                 Image(systemName: model.isRunning ? "stop.fill" : "play.fill")
             }
             Button {
+                model.settings.showTranslation.toggle()
+            } label: {
+                Label(model.settings.showTranslation ? "English" : "Japanese",
+                      systemImage: model.settings.showTranslation ? "character.bubble.fill" : "character.bubble")
+            }
+            .help("Show English or the original Japanese (T)")
+            Menu {
+                Toggle("English over Japanese", isOn: settingBinding(\.showTranslation))
+                Toggle("Japanese text list", isOn: settingBinding(\.showRecognizedText))
+                Toggle("Japanese in translation panel", isOn: settingBinding(\.showOriginalText))
+                Toggle("OCR boxes", isOn: settingBinding(\.showOCRBoxes))
+                Toggle("Debug statistics", isOn: settingBinding(\.showDebugStatistics))
+            } label: {
+                Image(systemName: "eye")
+            }
+            Button {
+                showingRecentLines = true
+            } label: {
+                Image(systemName: "text.bubble")
+            }
+            .help("Recent lines (H)")
+            Button {
+                toggleFullScreen()
+            } label: {
+                Image(systemName: isFullScreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+            }
+            .help("Full screen (F)")
+            Button {
                 showingSettings = true
             } label: {
                 Image(systemName: "gearshape")
@@ -155,10 +261,15 @@ private struct ControlBar: View {
             Text(statusText)
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
         .background(.bar)
+    }
+
+    private func settingBinding(_ keyPath: WritableKeyPath<AppSettings, Bool>) -> Binding<Bool> {
+        Binding(get: { model.settings[keyPath: keyPath] }, set: { model.settings[keyPath: keyPath] = $0 })
     }
 
     private var statusText: String {

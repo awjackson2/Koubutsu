@@ -68,4 +68,12 @@ struct OverlayLayoutTests {
         #expect(p[0].frame.maxY <= bounds.maxY + 1e-9)
         #expect(p[0].frame.minY >= bounds.minY)
     }
+
+    @Test func textScaleEnlargesNominalFont() {
+        let larger = OverlayLayout(textScale: 1.5)
+        #expect(abs(larger.nominalFontSize(sourceHeight: 40, lineCount: 1) - 40 * 0.7 * 1.5) < 1e-9)
+        #expect(larger.fontSizeRange.upperBound == 66)
+        #expect(OverlayLayout(textScale: 1).nominalFontSize(sourceHeight: 40, lineCount: 1)
+                == layout.nominalFontSize(sourceHeight: 40, lineCount: 1))
+    }
 }

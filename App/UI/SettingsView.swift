@@ -43,7 +43,24 @@ struct SettingsView: View {
                     Toggle("Show original Japanese", isOn: $settings.showOriginalText)
                     Toggle("Show translation", isOn: $settings.showTranslation)
                     Toggle("Show OCR boxes", isOn: $settings.showOCRBoxes)
+                    Toggle("Japanese text list", isOn: $settings.showRecognizedText)
                     Toggle("Debug statistics", isOn: $settings.showDebugStatistics)
+                    LabeledContent("English text size") {
+                        HStack {
+                            Slider(value: $settings.overlayTextScale, in: AppSettings.overlayTextScaleRange, step: 0.1)
+                                .frame(maxWidth: 220)
+                            Text("\(Int((settings.overlayTextScale * 100).rounded()))%")
+                                .monospacedDigit()
+                                .frame(width: 48, alignment: .trailing)
+                        }
+                    }
+                    Toggle("Keep screen awake while running", isOn: $settings.keepScreenAwake)
+                }
+                Section("Shortcuts") {
+                    Text("Hold on the video to see the original Japanese. In full screen, tap the video to show the controls.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Text("Keyboard: F full screen · T English/Japanese · H recent lines · Space play/pause · ← → 10 s · ⌘, settings")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Capture device") {
                     Toggle("Switch to capture device when connected", isOn: $settings.autoSwitchToCapture)
