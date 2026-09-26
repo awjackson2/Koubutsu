@@ -85,17 +85,18 @@ struct VideoOverlayView: View {
 extension VideoOverlayView {
     /// Furigana above kanji runs and underlines under words being learned, on the original Japanese.
     private func readingAids(mapper: CoordinateMapper) -> some View {
-        let lines = displayed.flatMap(\.stable.lines)
-        let marks: [(id: String, rect: PlaneRect, reading: String?, learning: Bool)] = lines.flatMap { line in
+        var marks: [ReadingMark] = []
+        for line in displayed.flatMap(\.stable.lines) {
             let boxes = CharacterLayout.boxes(for: line)
-            return (annotations(line.text) ?? []).compactMap { annotation in
-                guard annotation.range.upperBound <= boxes.count, !annotation.range.isEmpty else { return nil }
+            for annotation in annotations(line.text) ?? [] {
+                guard annotation.range.upperBound <= boxes.count, !annotation.range.isEmpty else { continue }
                 let box = boxes[annotation.range].dropFirst().reduce(boxes[annotation.range.lowerBound]) { $0.union($1) }
-                return ("\(line.id)-\(annotation.range)-\(annotation.reading ?? "_")", mapper.viewRect(for: box),
-                        annotation.reading, annotation.isLearning)
+                marks.append(ReadingMark(id: "\(line.id)-\(annotation.range)-\(annotation.reading ?? "_")",
+                                         rect: mapper.viewRect(for: box), reading: annotation.reading,
+                                         learning: annotation.isLearning))
             }
         }
-        return ForEach(marks, id: \.id) { mark in
+        return ForEach(marks) { mark in
             if let reading = mark.reading {
                 let size = max(9, min(28, mark.rect.height * 0.42 * textScale))
                 Text(reading)
@@ -115,6 +116,14 @@ extension VideoOverlayView {
             }
         }
     }
+}
+
+/// One furigana label or learning underline, in view coordinates.
+private struct ReadingMark: Identifiable {
+    let id: String
+    let rect: PlaneRect
+    let reading: String?
+    let learning: Bool
 }
 
 extension PlaneRect {
