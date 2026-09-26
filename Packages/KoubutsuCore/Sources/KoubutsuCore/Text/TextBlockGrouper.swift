@@ -95,8 +95,10 @@ public struct TextBlockGrouper: Sendable {
 
     func isSpeakerLabel(_ label: RecognizedTextObservation, above text: [RecognizedTextObservation]) -> Bool {
         guard let first = text.first else { return false }
-        let keyLength = TextNormalizer.key(label.text).count
-        guard (1...maximumSpeakerLength).contains(keyLength) else { return false }
+        let labelKey = TextNormalizer.key(label.text)
+        guard (1...maximumSpeakerLength).contains(labelKey.count) else { return false }
+        // Speaker names in Japanese games are Japanese; UI tags such as 「TALK」/「RANK」 are not speakers.
+        guard labelKey.contains(where: TextNormalizer.isJapanese) else { return false }
         let heights = text.map(\.boundingBox.height).sorted()
         let lineHeight = heights[heights.count / 2]
         let l = label.boundingBox, t = first.boundingBox

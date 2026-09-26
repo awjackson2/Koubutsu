@@ -11,6 +11,9 @@ public struct HUDFilter: Sendable {
     public var textSimilarity = 0.5
     /// Sightings further apart than this (seconds) do not accumulate.
     public var window: Double = 180
+    /// The exact same text stabilizing this many times anywhere is HUD too (labels that move with a
+    /// dialogue box, such as 「TALK」, or a clock word that jumps between layouts).
+    public var globalRepeatThreshold = 3
 
     private struct Place {
         var box: NormalizedRect
@@ -21,6 +24,7 @@ public struct HUDFilter: Sendable {
     }
 
     private var places: [Place] = []
+    private var keyCounts: [String: Int] = [:]
     public private(set) var suppressedCount = 0
 
     public init() {}
@@ -29,6 +33,7 @@ public struct HUDFilter: Sendable {
 
     public mutating func reset() {
         places.removeAll()
+        keyCounts.removeAll()
         suppressedCount = 0
     }
 
@@ -36,12 +41,16 @@ public struct HUDFilter: Sendable {
     public mutating func isHUD(_ stable: StableText) -> Bool {
         let time = stable.firstSeenFrame.hostTime.seconds
         let box = stable.boundingBox
+        let globalCount = (keyCounts[stable.key] ?? 0) + 1
+        keyCounts[stable.key] = globalCount
+        let globallyRepeated = globalCount >= globalRepeatThreshold
         guard let index = places.firstIndex(where: { samePlace($0.box, box) }) else {
             places.append(Place(box: box, keys: [stable.key], count: 1, lastSeen: time, isHUD: false))
-            return false
+            if globallyRepeated { suppressedCount += 1 }
+            return globallyRepeated
         }
         var place = places[index]
-        let similar = place.keys.contains { TextNormalizer.similarity($0, stable.key) >= textSimilarity }
+        let similar = place.keys.contains { isSimilar($0, stable.key) }
         if similar && time - place.lastSeen <= window {
             place.count += 1
         } else if !place.isHUD {
@@ -53,9 +62,15 @@ public struct HUDFilter: Sendable {
         place.lastSeen = time
         if place.count >= repeatThreshold { place.isHUD = true }
         places[index] = place
-        let suppress = place.isHUD && similar
+        let suppress = (place.isHUD && similar) || globallyRepeated
         if suppress { suppressedCount += 1 }
         return suppress
+    }
+
+    /// OCR variants (edit similarity) or one text containing the other (「午後」 within 「4/18キ午後」).
+    private func isSimilar(_ a: String, _ b: String) -> Bool {
+        if !a.isEmpty, !b.isEmpty, a.contains(b) || b.contains(a) { return true }
+        return TextNormalizer.similarity(a, b) >= textSimilarity
     }
 
     private func samePlace(_ a: NormalizedRect, _ b: NormalizedRect) -> Bool {

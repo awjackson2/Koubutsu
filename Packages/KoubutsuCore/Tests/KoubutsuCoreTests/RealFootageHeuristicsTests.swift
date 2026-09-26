@@ -74,6 +74,31 @@ struct RealFootageHeuristicsTests {
         #expect(seen == [false, false, true, true])
     }
 
+    @Test func clockWordMatchesItsCombinedForm() {
+        // Run 5: 「午後」 alone and 「4/18キ午後」 alternate in the date/time HUD.
+        var hud = HUDFilter()
+        let clock = NormalizedRect(x: 0.88, y: 0.02, width: 0.1, height: 0.05)
+        let word = NormalizedRect(x: 0.93, y: 0.03, width: 0.04, height: 0.03)
+        let seen = [("4/18キ午後", clock), ("午後", word), ("午後", word), ("4/18土午後", clock)]
+            .enumerated().map { i, v in hud.isHUD(stable(v.0, box: v.1, at: Double(i) * 10)) }
+        #expect(seen == [false, false, true, true])
+    }
+
+    @Test func movingLabelRepeatedEverywhereIsHUD() {
+        var hud = HUDFilter()
+        let places = [NormalizedRect(x: 0.30, y: 0.72, width: 0.02, height: 0.01),
+                      NormalizedRect(x: 0.55, y: 0.60, width: 0.02, height: 0.01),
+                      NormalizedRect(x: 0.20, y: 0.75, width: 0.02, height: 0.01)]
+        let seen = places.enumerated().map { i, box in hud.isHUD(stable("TALK", box: box, at: Double(i) * 30)) }
+        #expect(seen == [false, false, true])
+    }
+
+    @Test func latinTagIsNotASpeaker() {
+        let tag = line("TALK", x: 0.285, y: 0.698, w: 0.03, h: 0.022)
+        let blocks = grouper.group([tag, line1, line2])
+        #expect(blocks.allSatisfy { $0.speaker == nil })
+    }
+
     @Test func changingDialogueInTheSameBoxIsNeverSuppressed() {
         var hud = HUDFilter()
         let box = NormalizedRect(x: 0.32, y: 0.79, width: 0.4, height: 0.13)

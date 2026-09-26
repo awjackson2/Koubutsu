@@ -26,17 +26,20 @@ struct VideoModeTests {
         #expect(!status.loops)
     }
 
-    @Test func pauseStopsFrameDelivery() async throws {
+    @Test func pauseRedeliversTheFrozenFrameSlowly() async throws {
         let (source, recorder) = try await startedSource()
         await source.pause()
         try? await Task.sleep(for: .milliseconds(300))
-        let paused = recorder.count
-        try? await Task.sleep(for: .milliseconds(500))
-        let after = recorder.count
+        let pausedCount = recorder.count
+        try? await Task.sleep(for: .milliseconds(1000))
+        let after = recorder.all.suffix(from: pausedCount)
         let status = await source.playbackStatus()
         await source.stop()
-        #expect(after == paused)
         #expect(!status.isPlaying)
+        // Still-frame re-delivery at ~4 Hz (not 60 FPS) with an unchanged media time, so OCR keeps
+        // reading what is on screen while nothing new is decoded.
+        #expect((2...6).contains(after.count))
+        #expect(Set(after.map(\.0.presentationTime)).count <= 1)
     }
 
     @Test func seekJumpsMediaTime() async throws {
