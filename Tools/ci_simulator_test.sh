@@ -23,7 +23,7 @@ print("Selected", best[0], file=sys.stderr)
 echo "Simulator: ${UDID}"
 ACTION=${1:-test}
 STATUS=0
-LIMIT=${XCODEBUILD_TIME_LIMIT:-720}
+LIMIT=${XCODEBUILD_TIME_LIMIT:-2700}
 xcodebuild -project Koubutsu.xcodeproj -scheme Koubutsu \
   -destination "id=${UDID}" \
   -resultBundlePath "build/Koubutsu-${ACTION}.xcresult" \

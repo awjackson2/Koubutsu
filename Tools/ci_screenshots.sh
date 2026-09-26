@@ -22,19 +22,22 @@ APP=$(find build/dd/Build/Products -name "Koubutsu.app" -maxdepth 3 | head -1)
 xcrun simctl install "$UDID" "$APP"
 BUNDLE=com.awjackson2.Koubutsu
 
-shot() { # name, seconds after launch, launch args...
-  local name=$1 delay=$2; shift 2
+# Vision on the simulator runs on the CPU: the first Japanese request loads models for ~2 minutes and
+# later requests take several seconds each. Each configuration therefore runs for a few minutes and is
+# captured repeatedly; all captures are kept.
+series() { # name, launch args...
+  local name=$1; shift
   xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
   xcrun simctl launch "$UDID" "$BUNDLE" "$@" > /dev/null
-  sleep "$delay"
-  xcrun simctl io "$UDID" screenshot "build/screenshots/${name}.png" > /dev/null
-  echo "captured ${name}"
+  for t in 20 90 150 210 270; do
+    sleep $(( t - ${last:-0} )); last=$t
+    xcrun simctl io "$UDID" screenshot "build/screenshots/${name}_t${t}s.png" > /dev/null
+    echo "captured ${name} at ${t}s"
+  done
+  last=0
 }
 
-# Clip timeline: 0-6 s title menu, 6-14 s dialogue (typewriter), 14-18 s saving, 18-24 s katakana menu.
-shot panel_dialogue 13 --demo-translator --display-mode=panel --show-debug
-shot overlay_dialogue 13 --demo-translator --display-mode=overlay --hide-debug
-shot overlay_boxes_menu 21 --demo-translator --display-mode=panelAndOverlay --show-boxes --hide-debug
-shot title_debug 4 --demo-translator --display-mode=panelAndOverlay --show-boxes --show-debug
+series panel_debug --demo-translator --display-mode=panel --show-boxes --show-debug
+series overlay --demo-translator --display-mode=panelAndOverlay --hide-debug
 xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
 ls -la build/screenshots

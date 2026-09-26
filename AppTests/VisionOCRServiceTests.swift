@@ -3,7 +3,7 @@ import Synchronization
 import Testing
 @testable import Koubutsu
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(10)))
 struct VisionOCRServiceTests {
     @Test func japaneseIsSupported() async {
         let service = VisionOCRService()
