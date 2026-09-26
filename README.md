@@ -3,7 +3,7 @@
 An iPad app that turns the iPad into a real-time translated display for a Nintendo Switch 2 running
 Japanese games. Video (and audio) arrive over a USB-C UVC/UAC capture adapter; the app shows the game with
 minimal latency, recognizes Japanese text with Apple Vision, translates it on device with Apple Translation,
-and shows English in a panel or over the game.
+and replaces the Japanese on screen with English, in place, as it appears.
 
 Nothing is injected into the Switch or the game: everything works on the external video/audio stream.
 
@@ -16,7 +16,8 @@ Nothing is injected into the Switch or the game: everything works on the externa
 | Vision Japanese OCR (text, confidence, boxes, latency) | implemented, CI fixture + benchmark tests |
 | Text stabilization (typewriter-aware), translation cache, dialogue history | implemented, tested |
 | Apple on-device translation (ja→en) with language download flow | implemented; needs a device with the model |
-| Spatial overlay (OCR boxes, translated text over Japanese) | implemented |
+| Replace-in-place overlay (English fitted into each Japanese block's box, updates on every change) | implemented, default |
+| Video mode (imported file: play/pause/seek/loop; same pipeline as capture) | implemented, CI-tested on real footage |
 | UVC capture + hot-plug, UAC audio passthrough | implemented; unverified without capture hardware |
 | Physical iPad / capture hardware measurements | procedure in `docs/device_testing.md` |
 
@@ -44,6 +45,13 @@ CI run 15, after the delivery-path crash fix (Phase 1.4.1): the app stays up for
 | Dialogue with OCR boxes + debug | Title with OCR boxes | Overlay at a scene change (OCR lag on the simulator) |
 |---|---|---|
 | ![dialogue](docs/screenshots/ci15_panel_dialogue_boxes_debug.jpg) | ![title](docs/screenshots/ci15_panel_title_boxes.jpg) | ![lag](docs/screenshots/ci15_overlay_scene_change_lag.jpg) |
+
+## Video mode
+
+Import a gameplay video (source menu → Import, or Files app → *On My iPad → Koubutsu*) and it runs
+through exactly the same pipeline as a capture device: Japanese is replaced by English as it appears.
+The transport bar adds play/pause, ±10 s, a scrubber and looping. A paused frame keeps being read, so a
+line can be held on screen. Videos stay on the iPad; nothing is bundled or uploaded.
 
 ## Requirements
 

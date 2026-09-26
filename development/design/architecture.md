@@ -1,13 +1,13 @@
 # Architecture
 
-Last synced: Phase 6.1.0 (2026-09-26)
+Last synced: Phase 7.6.0 (2026-09-26)
 
 ## Layers
 
 ```
 ┌──────────────────────────────── App target (Koubutsu, iPadOS 26) ─────────────────────────────────┐
-│ UI (SwiftUI)     RootView · VideoDisplayView · VideoOverlayView · TranslationPanel ·               │
-│                  RecognizedTextPanel · DebugPanel · SettingsView                                   │
+│ UI (SwiftUI)     RootView · VideoDisplayView · VideoOverlayView (replace in place) ·                │
+│                  TranslationPanel · VideoTransportBar · DebugPanel · SettingsView                  │
 │ Composition      AppModel (@MainActor @Observable): source lifecycle, settings, hot-plug, benchmark │
 │                  TranslationController (@MainActor): stabilizer → history → coordinator → displayed │
 │ Adapters         Video: TestVideoSource · UVCVideoSource · VideoFrame · SampleBufferRenderer        │
@@ -17,7 +17,7 @@ Last synced: Phase 6.1.0 (2026-09-26)
 └──────────────────────────────────────────────┬─────────────────────────────────────────────────────┘
                                                │ depends on
 ┌──────────────────────────────── KoubutsuCore (Foundation only, Linux-tested) ─────────────────────┐
-│ Media       MediaTime · HostTime · HostClock · FrameTiming · VideoSource · VideoFormat             │
+│ Media       MediaTime · HostTime · HostClock · FrameTiming · VideoSource · VideoFormat · Playback  │
 │ Pipeline    FrameSampler · LatestValueMailbox                                                      │
 │ Metrics     RateCounter · LatencyStats · PipelineMetrics                                           │
 │ Geometry    NormalizedRect/Point/Quad · CoordinateMapper · PlaneRect                               │
@@ -39,22 +39,24 @@ TestVideoSource (AVPlayerItemVideoOutput pull, 2× source rate)   UVCVideoSource
                            FramePipeline.handle
             ┌─────────────────────┼────────────────────────────────┐
             ▼                     ▼                                ▼
- SampleBufferRenderer      PipelineMetrics              SampledFrameTap (FrameSampler, 5 FPS default)
+ SampleBufferRenderer      PipelineMetrics              SampledFrameTap (FrameSampler, 10 FPS default)
  (AVSampleBufferDisplay-   (received/displayed)                    │ LatestValueMailbox (newest frame only)
   Layer, display-                                                  ▼
   immediately) — never                                  OCRWorker (detached task, one request in flight)
   waits for anything                                               │ VisionOCRService (RecognizeTextRequest, ja)
                                                                    ▼
                                                    @MainActor: AppModel.latestOCR, TranslationController
-                                                                   │ TextStabilizer (grouping, tracking,
-                                                                   │  typewriter-aware stability)
+                                                                   │ TextStabilizer (grouping, tracking;
+                                                                   │  emits on first reading, re-emits on change)
                                                                    ▼ .stabilized(StableText)
                                                    DialogueHistory + TranslationCoordinator
                                                      (LRU cache, in-flight dedup, metrics)
                                                                    │ AppleTranslationService (on device)
                                                                    ▼
-                                                   displayed → TranslationPanel / VideoOverlayView
-                                                     (CoordinateMapper + OverlayLayout)
+                                                   displayed → VideoOverlayView (default) / TranslationPanel
+                                                     (CoordinateMapper + OverlayLayout: opaque box over
+                                                      each Japanese block, English fitted inside; the
+                                                      block's previous English stays up while it updates)
 ```
 
 Invariants:
@@ -75,6 +77,12 @@ matching the display layer's `.resizeAspect`.
 `HostTime` = host monotonic clock (`CACurrentMediaTime`), the clock capture sample buffers are stamped in.
 Test-video frames are stamped with the host time they were pulled. Audio tap buffers (UAC) carry
 `AVAudioTime` host times in the same domain for future synchronization.
+
+## Video mode
+
+A file source is game mode on a file: the same pipeline, plus `PlaybackControlling` (play/pause/seek/loop)
+used only by `VideoTransportBar`. A paused file re-delivers its last frame every 250 ms so OCR keeps
+running. Seeking or looping (media time going backwards) clears what is on screen.
 
 ## Lifecycle
 
