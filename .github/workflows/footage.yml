@@ -4,6 +4,10 @@ name: Footage analysis
 on:
   workflow_dispatch:
     inputs:
+      footage_url:
+        description: Direct download URL of the footage (overrides the DEMO_FOOTAGE_URL secret; masked in logs)
+        required: false
+        default: ""
       fps:
         description: OCR samples per second of video
         default: "1"
@@ -20,13 +24,14 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 90
     env:
-      FOOTAGE_URL: ${{ secrets.DEMO_FOOTAGE_URL }}
+      FOOTAGE_URL: ${{ github.event.inputs.footage_url || secrets.DEMO_FOOTAGE_URL }}
     steps:
       - uses: actions/checkout@v4
       - name: Download footage
         id: footage
         run: |
           if [ -z "$FOOTAGE_URL" ]; then echo "DEMO_FOOTAGE_URL secret not set; skipping."; echo "present=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "::add-mask::$FOOTAGE_URL"
           mkdir -p "$RUNNER_TEMP/footage"
           curl -sSL --fail -o "$RUNNER_TEMP/footage/footage.mov" "$FOOTAGE_URL"
           file "$RUNNER_TEMP/footage/footage.mov"
