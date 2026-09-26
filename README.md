@@ -20,8 +20,16 @@ Nothing is injected into the Switch or the game: everything works on the externa
 | Video mode (imported file: play/pause/seek/loop; same pipeline as capture) | implemented, CI-tested on real footage |
 | UVC capture + hot-plug, UAC audio passthrough | implemented; unverified without capture hardware |
 | Physical iPad / capture hardware measurements | procedure in `docs/device_testing.md` |
+| Fixed video stage; full screen, English/Japanese toggle, hold-to-peek, recent lines, keyboard shortcuts | implemented, CI-built; gestures unverified on device |
 
 ## Screenshots
+
+Full screen and the fixed video stage (Phase 7.8.0, CI screenshots on 14d7a2b, iPad simulator, synthetic clip,
+demo translator). The video keeps the same position and size with or without the controls.
+
+| Full screen | Controls shown |
+|---|---|
+| ![full screen](docs/screenshots/qol780_fullscreen.jpg) | ![controls](docs/screenshots/qol780_overlay_controls.jpg) |
 
 Replace-in-place on real footage (Persona 3 Reload, Japanese; CI footage run 10 on commit ecd62ee, Phase 7.6.1,
 iPad simulator). The simulator has no translation model, so the English is a labelled `[EN] …` placeholder of

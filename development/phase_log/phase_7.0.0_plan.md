@@ -42,7 +42,7 @@ replace it with English in real time; Video mode behaves exactly like game mode)
 - [x] 7.6.0 — replace-in-place overlay as default + instant updates
 - [x] 7.6.1–7.6.4 — replace-in-place fixes; webcam-footage stability; fixed video stage   (amended 2026-09-26)
 - [x] 7.7.0 — unsigned IPA from CI; Linux install guide                                    (amended 2026-09-26)
-- [ ] 7.8.0 — QOL: full screen, quick toggles, peek, recent lines, keep-awake, text size   (amended 2026-09-26)
+- [x] 7.8.0 — QOL: full screen, quick toggles, peek, recent lines, keep-awake, text size   (amended 2026-09-26)
 ```
 
 ## Test Plan

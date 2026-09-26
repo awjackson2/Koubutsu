@@ -1,6 +1,6 @@
 # Architecture
 
-Last synced: Phase 7.6.4 (2026-09-26)
+Last synced: Phase 7.8.0 (2026-09-26)
 
 ## Layers
 
@@ -86,6 +86,11 @@ cover other blocks' text.
 The video stage (`VideoStageLayout`) is a full-width, top-aligned 16:9 rect that depends only on the window size.
 Transport bar, panels and control bar are a bottom-anchored overlay with fixed-height panels; showing or hiding
 them never resizes or moves the video or its replacement boxes.
+
+Full screen (`RootView.isFullScreen`) removes the chrome overlay and the status bar; a tap on the stage reveals
+the chrome for 4 s. Holding on the stage hides the replacement overlay (peek at the original). Keyboard shortcuts
+are invisible buttons kept in the hierarchy so they work with the chrome hidden. The idle timer is disabled
+while a source runs (`keepScreenAwake`).
 
 ## Coordinate convention
 
