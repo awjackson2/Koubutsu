@@ -13,7 +13,7 @@ import os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "Koubutsu.xcodeproj", "project.pbxproj")
 
-DEPLOYMENT_TARGET = "18.0"
+DEPLOYMENT_TARGET = "26.0"
 BUNDLE_ID = "com.awjackson2.Koubutsu"
 
 

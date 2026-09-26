@@ -6,34 +6,35 @@ SDK=$(xcrun --sdk iphoneos --show-sdk-path)
 FW="$SDK/System/Library/Frameworks"
 section() { echo; echo "## $1"; echo '```'; }
 endsection() { echo '```'; }
-iface() { # framework -> first arm64 swiftinterface path
-  ls "$FW/$1.framework/Modules/$1.swiftmodule/"arm64*-apple-ios.swiftinterface 2>/dev/null | head -1
-}
+iface() { ls "$FW/$1.framework/Modules/$1.swiftmodule/"arm64*-apple-ios.swiftinterface 2>/dev/null | head -1; }
+# Prints a declaration block starting at the first line matching $2 through its closing brace at column 0/2.
+block() { awk -v pat="$2" 'found==0 && $0 ~ pat {found=1} found {print; if ($0 ~ /^}/) exit}' "$1" | cut -c1-240 | head -${3:-120}; }
 
 echo "# SDK Report"
-section "Toolchain"; xcodebuild -version; swift --version 2>&1; xcodebuild -showsdks; endsection
-section "Simulator runtimes"; xcrun simctl list runtimes; endsection
-section "Available iPad simulators"; xcrun simctl list devices available | grep -i ipad | head -20; endsection
+section "Toolchain"; xcodebuild -version; swift --version 2>&1 | head -1; xcodebuild -showsdks | grep -E "iOS|Simulator - iOS"; endsection
+section "Simulator runtimes"; xcrun simctl list runtimes | grep iOS; endsection
 
-section "Vision: VNRecognizeTextRequest (ObjC header)"
-grep -n -E "Revision[0-9]|API_AVAILABLE|supportedRecognitionLanguages|recognitionLanguages|automaticallyDetectsLanguage" \
-  "$FW/Vision.framework/Headers/VNRecognizeTextRequest.h" | head -40
-endsection
 VI=$(iface Vision)
-section "Vision: Swift RecognizeTextRequest ($VI)"
-grep -n -E "struct RecognizeTextRequest|RecognizedTextObservation|recognitionLanguages|supportedRecognitionLanguages|recognitionLevel|usesLanguageCorrection|func perform\(on: CoreVideo.CVPixelBuffer|func perform\(on: CoreMedia.CMSampleBuffer|Revision" "$VI" | head -60
+section "Vision: RecognizeTextRequest"; block "$VI" "^public struct RecognizeTextRequest" 80; endsection
+section "Vision: RecognizedTextObservation"; block "$VI" "^public struct RecognizedTextObservation" 80; endsection
+section "Vision: RecognizedText"; block "$VI" "^public struct RecognizedText " 60; endsection
+section "Vision: ImageRequestHandler / perform"
+grep -n -E "public (init|func perform)\(.*(CVPixelBuffer|CMSampleBuffer)" "$VI" | cut -c1-240 | head -20
+block "$VI" "^public struct ImageRequestHandler" 40
 endsection
+section "Vision: NormalizedRect"; grep -n -E "struct NormalizedRect|public init\(normalizedRect|public var cgRect|origin|verticallyFlipped|func toImageCoordinates" "$VI" | cut -c1-200 | head -20; endsection
 
 TI=$(iface Translation)
-section "Translation ($TI)"
-grep -n -E "@available|class TranslationSession|init\(installedSource|public init|func translate|func translations|func prepareTranslation|struct Request|struct Response|LanguageAvailability|func status|translationTask|Configuration|func cancel|isReady|canRequestDownloads" "$TI" | head -120
+section "Translation (full, availability-filtered)"
+grep -v -E "@available\((tvOS|watchOS|visionOS), unavailable" "$TI" | grep -v -E "^\s*$|^//|^import|^@_exported" | cut -c1-240 | head -260
 endsection
 
-section "AVFoundation: external capture devices"
-grep -rn -E "AVCaptureDeviceTypeExternal|AVCaptureDeviceWasConnected|AVCaptureDeviceWasDisconnected|AVCaptureDeviceTypeMicrophone|AVCaptureDeviceTypeBuiltInMicrophone" "$FW/AVFoundation.framework/Headers/" | head -30
-endsection
-section "AVFoundation: sample buffer rendering"
-grep -rn -E "sampleBufferRenderer|enqueueSampleBuffer|AVSampleBufferVideoRenderer" "$FW/AVFoundation.framework/Headers/AVSampleBufferDisplayLayer.h" | head -20
-grep -rn -E "copyPixelBufferForItemTime|hasNewPixelBufferForItemTime|initWithOutputSettings|initWithPixelBufferAttributes" "$FW/AVFoundation.framework/Headers/AVPlayerItemOutput.h" | head -10
+H="$FW/AVFoundation.framework/Headers"
+section "AVCaptureDevice external type"; sed -n '466,500p' "$H/AVCaptureDevice.h"; endsection
+section "AVCaptureDevice connect/disconnect notifications"; sed -n '20,45p' "$H/AVCaptureDevice.h"; endsection
+section "AVSampleBufferDisplayLayer.sampleBufferRenderer"; sed -n '290,310p' "$H/AVSampleBufferDisplayLayer.h"; endsection
+section "AVSampleBufferVideoRenderer"
+grep -n -E "API_AVAILABLE|enqueue|flush|requiresFlush|status|copyDisplayedPixelBuffer|expectMinimum|presentationTimeExpectation" "$H/AVSampleBufferVideoRenderer.h" | cut -c1-200 | head -40
+grep -n -E "enqueueSampleBuffer|flush|isReadyForMoreMediaData|API_AVAILABLE" "$H/AVQueuedSampleBufferRendering.h" | cut -c1-200 | head -20
 endsection
 echo; echo "_Generated $(date -u +%Y-%m-%dT%H:%M:%SZ)_"
