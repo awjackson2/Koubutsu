@@ -30,6 +30,19 @@ Findings → changes (Phase 4.2.2):
 - 「…」 was read as 「・・」; comparison keys now fold runs of 「・」 into an ellipsis.
 - `detect 1200 ms` for line 1 is clip time from full reveal to first exact sample at 0.5 FPS sampling, not OCR latency.
 
+## CI run 20 — after Phase 4.2.2
+
+```
+samples: 12, mean OCR: 3318 ms
+exact match: 92%, char accuracy: 99%
+  [saving] ✗ セーブしています… → セブしています・・ (acc 91%, detect —)
+  (all other 11 expectations exact, as in run 18)
+```
+
+Joining fragments raised the status line from 36% to 91% character accuracy; the remaining error is a
+dropped long-vowel mark 「ー」 in small text over a moving background. Mean OCR time varies between runs
+(1.7–3.3 s) with simulator host load.
+
 ## Device
 
 Pending: run *Debug panel → Run benchmark* on an iPad (`docs/device_testing.md` §2) and add results here.

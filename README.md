@@ -22,6 +22,14 @@ Nothing is injected into the Switch or the game: everything works on the externa
 
 ## Screenshots
 
+Latest (CI screenshots run 1 on commit ce7e5d0): translation overlay over each scene of the synthetic clip.
+
+| Dialogue box | Katakana menu | Title menu | Panel + OCR boxes + debug |
+|---|---|---|---|
+| ![dialogue](docs/screenshots/ci20_overlay_dialogue.jpg) | ![menu](docs/screenshots/ci20_overlay_menu.jpg) | ![title](docs/screenshots/ci20_overlay_title.jpg) | ![panel](docs/screenshots/ci20_panel_dialogue_boxes_debug.jpg) |
+
+### Earlier captures
+
 iPad Pro 13" simulator, CI run 13, bundled synthetic clip. The simulator has no Japanese→English model, so these
 use the labelled demo translator (`--demo-translator`, shown as "Demo table (synthetic clip)" in the debug
 panel); OCR, stabilization, caching, layout and all metrics are the real pipeline. Simulator OCR is CPU-only
