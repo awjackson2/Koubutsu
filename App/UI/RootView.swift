@@ -56,12 +56,7 @@ struct RootView: View {
             }
         }
         .translationTask(translationController.downloadConfiguration) { session in
-            var failure: String?
-            do {
-                try await session.prepareTranslation()
-            } catch {
-                failure = error.localizedDescription
-            }
+            let failure = await TranslationController.prepareDownload(UncheckedSendableBox(session))
             await translationController.downloadFinished(error: failure)
         }
         .sheet(isPresented: $showingSettings) {

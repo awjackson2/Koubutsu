@@ -72,6 +72,17 @@ final class TranslationController {
                                                                  target: Locale.Language(identifier: targetLanguage))
     }
 
+    /// Runs the system download prompt on the session SwiftUI provides. Nonisolated: the framework call must
+    /// not run while holding the main actor's reference to the session.
+    nonisolated static func prepareDownload(_ session: UncheckedSendableBox<TranslationSession>) async -> String? {
+        do {
+            try await session.value.prepareTranslation()
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
     func downloadFinished(error: String?) async {
         downloadConfiguration = nil
         if let error { statusMessage = "Language download failed: \(error)" }
