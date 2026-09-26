@@ -104,29 +104,29 @@ Fallback: iPadOS 18.0 with the translation session hosted by a SwiftUI `.transla
 Advisory mirror; progress is read from `phase_index.md`.
 
 ```
-- [ ] 1.1.0 — Project bootstrap: Xcode project (synchronized folders), KoubutsuCore package,
+- [x] 1.1.0 — Project bootstrap: Xcode project (synchronized folders), KoubutsuCore package,
               CI (Linux swift test, macOS simulator build), launchable empty app shell
                                                    deps: none          risk: HIGH (pbxproj authored without Xcode)
-- [ ] 1.1.1 — SDK verification report: CI job dumps Xcode/SDK versions and greps SDK
+- [x] 1.1.1 — SDK verification report: CI job dumps Xcode/SDK versions and greps SDK
               .swiftinterface files for Vision/Translation/AVCapture symbols; record results
               in development/design/platform_apis.md; lock deployment target
                                                    deps: 1.1.0         risk: med
-- [ ] 1.2.0 — Core pipeline contracts (Linux-tested): MediaTimestamp, frame identity,
+- [x] 1.2.0 — Core pipeline contracts (Linux-tested): MediaTimestamp, frame identity,
               VideoSource protocol + state/error model, FrameSampler, LatestFrameSlot,
               RollingRateCounter/latency stats, RecognizedTextObservation, NormalizedRect,
               AppSettings skeleton                  deps: 1.1.0         risk: low
-- [ ] 1.3.0 — TestVideoSource + shared display renderer: file-backed looping playback at
+- [x] 1.3.0 — TestVideoSource + shared display renderer: file-backed looping playback at
               source rate, AVSampleBufferDisplayLayer renderer, synthetic Japanese test clip
               (generated, committed) + document-picker import of local footage,
               UVCVideoSource "unavailable" stub       deps: 1.2.0, 1.1.1  risk: med
-- [ ] 1.4.0 — Frame tap + diagnostics: fan-out of CVPixelBuffer frames with timestamps,
+- [x] 1.4.0 — Frame tap + diagnostics: fan-out of CVPixelBuffer frames with timestamps,
               received/displayed FPS, resolution, source label in a debug panel
                                                    deps: 1.3.0         risk: low
-- [ ] 1.5.0 — Vision Japanese OCR: VisionOCRService behind OCRService protocol, sampler +
+- [x] 1.5.0 — Vision Japanese OCR: VisionOCRService behind OCRService protocol, sampler +
               latest-frame slot wiring, observations with text/confidence/box/timestamp,
               OCR latency + dropped/processed counters, debug panel list
                                                    deps: 1.4.0         risk: med
-- [ ] 1.5.1 — OCR fixture test on macOS CI: known Japanese strings rendered into a frame,
+- [x] 1.5.1 — OCR fixture test on macOS CI: known Japanese strings rendered into a frame,
               asserted through VisionOCRService on the iOS Simulator
                                                    deps: 1.5.0         risk: med
   (1.6–1.9 reserved for Major 1 follow-ons: e.g. settings UI for OCR rate/quality, source picker)

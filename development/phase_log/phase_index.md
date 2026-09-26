@@ -41,3 +41,5 @@ Line format:
 - **Phase 5.3.0** (2026-09-26) — [plan](phase_5.3.0_plan.md) · [log](phase_5.3.0_log.md) — Plugging in a capture device switches to it automatically (untested on hardware).
 - **Phase 6.0.0** (2026-09-26) — [plan](phase_6.0.0_plan.md) — Roadmap for capture audio.
 - **Phase 6.1.0** (2026-09-26) — [plan](phase_6.1.0_plan.md) · [log](phase_6.1.0_log.md) — Game audio from the capture device plays through the iPad (untested on hardware).
+- **Phase 4.2.1** (2026-09-26) — [log](phase_4.2.1_log.md) — Benchmark results are printed on every CI run (first result: 92% exact, 95% characters).
+- **Phase 4.2.2** (2026-09-26) — [log](phase_4.2.2_log.md) — Benchmark scores what the app actually translates: 99% of characters correct.

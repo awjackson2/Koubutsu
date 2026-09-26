@@ -27,9 +27,9 @@ Everything device-independent (format choice) lives in core and is tested; AVFou
 ## Technical Plan
 Roadmap checklist:
 ```
-- [ ] 5.1.0 — CaptureFormatSelector (1080p60, YUV preference)          deps: 1.2.0  risk: low
-- [ ] 5.2.0 — UVCVideoSource on AVCaptureSession                        deps: 5.1.0  risk: HIGH (unverifiable without hardware)
-- [ ] 5.3.0 — CaptureDeviceMonitor, source picker, auto-switch, reconnect  deps: 5.2.0  risk: med
+- [x] 5.1.0 — CaptureFormatSelector (1080p60, YUV preference)          deps: 1.2.0  risk: low
+- [x] 5.2.0 — UVCVideoSource on AVCaptureSession                        deps: 5.1.0  risk: HIGH (unverifiable without hardware)
+- [x] 5.3.0 — CaptureDeviceMonitor, source picker, auto-switch, reconnect  deps: 5.2.0  risk: med
 ```
 
 ## Test Plan

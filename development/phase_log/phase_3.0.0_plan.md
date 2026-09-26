@@ -27,9 +27,9 @@ All geometry in core (`CoordinateMapper`, `OverlayLayout`), SwiftUI only renders
 ## Technical Plan
 Roadmap checklist:
 ```
-- [ ] 3.1.0 — CoordinateMapper (aspect fit/fill/stretch, pixel/view round trips)   deps: 1.2.0  risk: low
-- [ ] 3.2.0 — OCR box debug overlay (quads) toggled by settings                     deps: 3.1.0  risk: low
-- [ ] 3.3.0 — Translation overlay: OverlayLayout + VideoOverlayView + display modes    deps: 3.2.0  risk: med
+- [x] 3.1.0 — CoordinateMapper (aspect fit/fill/stretch, pixel/view round trips)   deps: 1.2.0  risk: low
+- [x] 3.2.0 — OCR box debug overlay (quads) toggled by settings                     deps: 3.1.0  risk: low
+- [x] 3.3.0 — Translation overlay: OverlayLayout + VideoOverlayView + display modes    deps: 3.2.0  risk: med
 ```
 
 ## Test Plan

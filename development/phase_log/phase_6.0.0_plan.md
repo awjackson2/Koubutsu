@@ -27,7 +27,7 @@ On iPadOS a UAC device is an audio route input (`.usbAudio`), not an AVCaptureDe
 ## Technical Plan
 Roadmap checklist:
 ```
-- [ ] 6.1.0 — CaptureAudioService + settings + debug meter   deps: 5.3.0  risk: HIGH (hardware)
+- [x] 6.1.0 — CaptureAudioService + settings + debug meter   deps: 5.3.0  risk: HIGH (hardware)
 ```
 
 ## Test Plan

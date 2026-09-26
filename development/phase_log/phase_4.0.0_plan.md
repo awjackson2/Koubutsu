@@ -27,9 +27,9 @@ Measure first. Display path stays AVSampleBufferDisplayLayer unless numbers show
 ## Technical Plan
 Roadmap checklist:
 ```
-- [ ] 4.1.0 — CPU/memory/thermal/display-drop monitor + signposts        deps: 2.5.0  risk: low
-- [ ] 4.2.0 — OCR benchmark scoring (core) + CI benchmark on the clip       deps: 1.5.1  risk: med
-- [ ] 4.3.0 — Physical iPad test procedure + in-app benchmark trigger       deps: 4.2.0  risk: external
+- [x] 4.1.0 — CPU/memory/thermal/display-drop monitor + signposts        deps: 2.5.0  risk: low
+- [x] 4.2.0 — OCR benchmark scoring (core) + CI benchmark on the clip       deps: 1.5.1  risk: med
+- [x] 4.3.0 — Physical iPad test procedure + in-app benchmark trigger       deps: 4.2.0  risk: external
 ```
 
 ## Test Plan
