@@ -65,7 +65,7 @@ public struct TextBlockGrouper: Sendable {
     }
 
     /// Joins side-by-side fragments of the same line into one observation (left to right).
-    func mergeLineFragments(_ observations: [RecognizedTextObservation]) -> [RecognizedTextObservation] {
+    public func mergeLineFragments(_ observations: [RecognizedTextObservation]) -> [RecognizedTextObservation] {
         var lines: [RecognizedTextObservation] = []
         for fragment in observations.sorted(by: { $0.boundingBox.minX < $1.boundingBox.minX }) {
             if let index = lines.firstIndex(where: { continues($0, with: fragment) }) {

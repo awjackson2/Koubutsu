@@ -22,6 +22,7 @@ struct BenchmarkRunner {
             throw VideoSourceError.mediaUnreadable(reader.error?.localizedDescription ?? "reader failed")
         }
         var samples: [BenchmarkSample] = []
+        let grouper = TextBlockGrouper()
         var nextTime = 0.0
         var sequence: UInt64 = 0
         let clock = AppleHostClock()
@@ -34,7 +35,10 @@ struct BenchmarkRunner {
             sequence += 1
             guard let frame = VideoFrame(sampleBuffer: sampleBuffer, timing: timing) else { continue }
             let result = try await service.recognize(frame, configuration: configuration)
-            samples.append(BenchmarkSample(time: pts.seconds, recognized: result.observations.map(\.text),
+            // Score what the pipeline acts on: raw lines plus fragment-joined lines (TextBlockGrouper).
+            let joined = grouper.mergeLineFragments(result.observations).map(\.text)
+            samples.append(BenchmarkSample(time: pts.seconds,
+                                           recognized: result.observations.map(\.text) + joined,
                                            ocrDuration: result.recognitionDuration))
         }
         reader.cancelReading()

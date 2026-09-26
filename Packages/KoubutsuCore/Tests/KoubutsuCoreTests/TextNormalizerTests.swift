@@ -13,6 +13,9 @@ struct TextNormalizerTests {
         #expect(TextNormalizer.key("▶ はい") == "はい")
         #expect(TextNormalizer.key("鍵が必要です ▼") == "鍵が必要です")
         #expect(TextNormalizer.key("セーブしています…") == TextNormalizer.key("セーブしています..."))
+        #expect(TextNormalizer.key("ています・・") == "ています...")
+        #expect(TextNormalizer.key("ています・・・") == "ています...")
+        #expect(TextNormalizer.key("ハート・マーク") == "ハート・マーク")
     }
 
     @Test func editDistanceAndSimilarity() {

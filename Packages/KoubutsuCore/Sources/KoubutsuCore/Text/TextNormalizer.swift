@@ -29,7 +29,14 @@ public enum TextNormalizer {
     }
 
     public static func key(_ text: String) -> String {
-        String(display(text).filter { !$0.isWhitespace && !isDecoration($0) })
+        var key = String(display(text).filter { !$0.isWhitespace && !isDecoration($0) })
+        // OCR often reads a Japanese ellipsis 「…」 as a run of middle dots 「・・」.
+        while let range = key.range(of: "・・") {
+            var end = range.upperBound
+            while end < key.endIndex, key[end] == "・" { end = key.index(after: end) }
+            key.replaceSubrange(range.lowerBound..<end, with: "...")
+        }
+        return key
     }
 
     /// Characters games draw as UI decoration rather than text.
