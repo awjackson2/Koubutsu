@@ -10,7 +10,8 @@ struct WordCardContent: Identifiable {
     var sentenceTranslation: String?
 }
 
-/// Everything about one looked-up word: furigana, reading, romaji, conjugation, senses, kanji, the sentence.
+/// Everything about one looked-up word, as a printed index card: furigana, reading, romaji, conjugation, senses,
+/// kanji, the sentence.
 struct WordCardView: View {
     let content: WordCardContent
     let store: (any DictionaryStore)?
@@ -24,9 +25,24 @@ struct WordCardView: View {
     private var result: LookupResult { content.results[min(index, content.results.count - 1)] }
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            KSheetHeader(title: "Word", subtitle: String(format: "ENTRY %07d", result.entry.id)) {
+                HStack(spacing: 10) {
+                    if let onSave {
+                        Button {
+                            onSave(result)
+                        } label: {
+                            KIconLabel(icon: isSaved(result) ? "bookmark.fill" : "bookmark",
+                                       title: isSaved(result) ? "Saved" : "Save", size: 16)
+                        }
+                        .buttonStyle(.k(isSaved(result) ? .secondary : .primary))
+                        .disabled(isSaved(result))
+                    }
+                    Button("Done") { dismiss() }.buttonStyle(.k(.secondary))
+                }
+            }
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 22) {
                     header
                     if !result.reasons.isEmpty { conjugation }
                     senses
@@ -34,68 +50,68 @@ struct WordCardView: View {
                     kanjiSection
                     if let sentence = content.sentence { sentenceSection(sentence) }
                     if content.results.count > 1 { otherMatches }
-                    Text("JMdict / KANJIDIC2 — EDRDG, CC BY-SA 4.0").font(.caption2).foregroundStyle(.tertiary)
+                    Text("JMDICT / KANJIDIC2 — EDRDG, CC BY-SA 4.0").font(K.osd(11)).foregroundStyle(K.ink.opacity(0.4))
                 }
-                .padding()
+                .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .navigationTitle(result.headword)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
-                if let onSave {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button {
-                            onSave(result)
-                        } label: {
-                            Label(isSaved(result) ? "Saved" : "Save", systemImage: isSaved(result) ? "bookmark.fill" : "bookmark")
-                        }
-                        .disabled(isSaved(result))
-                    }
-                }
-            }
-            .sheet(isPresented: $showingSystemDictionary) {
-                SystemDictionaryView(term: result.headword)
-            }
+        }
+        .kSheet()
+        .kTexture(grain: 0.8, scanlines: 0)
+        .sheet(isPresented: $showingSystemDictionary) {
+            SystemDictionaryView(term: result.headword)
         }
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            FuriganaText(segments: Furigana.align(written: result.headword, reading: result.reading), size: 44)
+        VStack(alignment: .leading, spacing: 10) {
+            FuriganaText(segments: Furigana.align(written: result.headword, reading: result.reading), size: 52)
+                .padding(12)
+                .kFrame(K.red, tick: 12)
             HStack(spacing: 12) {
-                Text(result.reading).font(.title3)
-                Text(Romaji.hepburn(result.reading)).font(.title3).foregroundStyle(.secondary)
-                if result.entry.isCommon { tag("common", .green) }
+                Text(result.reading).font(.title2)
+                Text(Romaji.hepburn(result.reading).uppercased()).font(K.osd(20)).foregroundStyle(K.ink.opacity(0.55))
+                if result.entry.isCommon { KTag(text: "Common", filled: true) }
             }
             HStack(spacing: 12) {
-                Button { Speaker.shared.speak(result.reading) } label: { Label("Listen", systemImage: "speaker.wave.2") }
-                Button { showingSystemDictionary = true } label: { Label("iPad dictionary", systemImage: "character.book.closed") }
-                Button { UIPasteboard.general.string = result.headword } label: { Label("Copy", systemImage: "doc.on.doc") }
+                Button { Speaker.shared.speak(result.reading) } label: { KIconLabel(icon: "speaker", title: "Listen", size: 16) }
+                Button { showingSystemDictionary = true } label: { KIconLabel(icon: "dictionary", title: "Dictionary", size: 16) }
+                Button { UIPasteboard.general.string = result.headword } label: { KIconLabel(icon: "copy", title: "Copy", size: 16) }
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.k(.secondary))
         }
     }
 
     private var conjugation: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            sectionTitle("Conjugation")
-            Text("\(result.matched) = \(result.dictionaryForm) · " + result.reasons.joined(separator: " → "))
+        VStack(alignment: .leading, spacing: 6) {
+            KSectionHeader(title: "Conjugation", index: 1)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(result.matched).font(.title3)
+                Text("=").font(K.osd(16))
+                Text(result.dictionaryForm).font(.title3)
+                ForEach(Array(result.reasons.enumerated()), id: \.offset) { _, reason in
+                    Text("›").font(K.osd(16)).foregroundStyle(K.red)
+                    KTag(text: reason, color: K.ink)
+                }
+            }
         }
     }
 
     private var senses: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("Meanings")
+        VStack(alignment: .leading, spacing: 12) {
+            KSectionHeader(title: "Meanings", index: 2)
             ForEach(Array(result.entry.senses.enumerated()), id: \.offset) { number, sense in
-                VStack(alignment: .leading, spacing: 3) {
-                    let labels = sense.partsOfSpeech.map(DictionaryLabels.partOfSpeech)
-                        + (sense.misc + sense.fields + sense.dialects).map(DictionaryLabels.label)
-                    if !labels.isEmpty {
-                        Text(labels.joined(separator: " · ")).font(.caption).foregroundStyle(.cyan)
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(String(format: "%02d", number + 1)).font(K.osd(16)).foregroundStyle(K.red)
+                    VStack(alignment: .leading, spacing: 4) {
+                        let labels = sense.partsOfSpeech.map(DictionaryLabels.partOfSpeech)
+                            + (sense.misc + sense.fields + sense.dialects).map(DictionaryLabels.label)
+                        if !labels.isEmpty {
+                            Text(labels.joined(separator: " · ").uppercased()).font(K.osd(12)).foregroundStyle(K.ink.opacity(0.55))
+                        }
+                        Text(sense.glosses.joined(separator: "; ")).font(K.osd(18))
+                        if let note = sense.note { Text(note).font(K.osd(13)).foregroundStyle(K.ink.opacity(0.55)) }
                     }
-                    Text("\(number + 1). " + sense.glosses.joined(separator: "; ")).font(.body)
-                    if let note = sense.note { Text(note).font(.caption).foregroundStyle(.secondary) }
                 }
             }
         }
@@ -105,9 +121,9 @@ struct WordCardView: View {
         let kanji = result.entry.kanji.filter { !$0.isHidden && $0.text != result.headword }.map(\.text)
         let readings = result.entry.readings.map(\.text).filter { $0 != result.reading }
         if !kanji.isEmpty || !readings.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
-                sectionTitle("Other forms")
-                Text((kanji + readings).joined(separator: "、")).font(.body)
+            VStack(alignment: .leading, spacing: 6) {
+                KSectionHeader(title: "Other forms", index: 3)
+                Text((kanji + readings).joined(separator: "、")).font(.title3)
             }
         }
     }
@@ -115,18 +131,20 @@ struct WordCardView: View {
     @ViewBuilder private var kanjiSection: some View {
         let infos = result.headword.filter(Kana.isKanji).compactMap { store?.kanji($0) }
         if !infos.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                sectionTitle("Kanji")
+            VStack(alignment: .leading, spacing: 12) {
+                KSectionHeader(title: "Kanji", index: 4)
                 ForEach(infos, id: \.literal) { info in
                     HStack(alignment: .top, spacing: 14) {
-                        Text(info.literal).font(.system(size: 44))
-                            .frame(width: 60, height: 60)
-                            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(info.meanings.prefix(5).joined(separator: ", ")).font(.body.weight(.semibold))
-                            if !info.onReadings.isEmpty { Text("On: " + info.onReadings.joined(separator: "、")).font(.callout) }
-                            if !info.kunReadings.isEmpty { Text("Kun: " + info.kunReadings.joined(separator: "、")).font(.callout) }
-                            Text(kanjiFacts(info)).font(.caption).foregroundStyle(.secondary)
+                        Text(info.literal).font(.system(size: 48))
+                            .frame(width: 72, height: 72)
+                            .background(K.ink)
+                            .foregroundStyle(K.paper)
+                            .kFrame(K.red, tick: 10)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(info.meanings.prefix(5).joined(separator: ", ").uppercased()).font(K.osd(17))
+                            if !info.onReadings.isEmpty { labeled("ON", info.onReadings.joined(separator: "、")) }
+                            if !info.kunReadings.isEmpty { labeled("KUN", info.kunReadings.joined(separator: "、")) }
+                            Text(kanjiFacts(info)).font(K.osd(12)).foregroundStyle(K.ink.opacity(0.55))
                         }
                     }
                 }
@@ -135,63 +153,64 @@ struct WordCardView: View {
     }
 
     private func sentenceSection(_ sentence: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            sectionTitle("Sentence")
+        VStack(alignment: .leading, spacing: 8) {
+            KSectionHeader(title: "Sentence", index: 5)
             Text(highlighted(sentence)).font(.title3).textSelection(.enabled)
             if let translation = content.sentenceTranslation {
-                Text(translation).foregroundStyle(.secondary).textSelection(.enabled)
+                Text(translation).font(K.osd(16)).foregroundStyle(K.ink.opacity(0.6)).textSelection(.enabled)
             }
-            Button { Speaker.shared.speak(sentence) } label: { Label("Listen", systemImage: "speaker.wave.2") }
-                .buttonStyle(.borderless)
+            Button { Speaker.shared.speak(sentence) } label: { KIconLabel(icon: "speaker", title: "Listen", size: 16) }
+                .buttonStyle(.k(.ghost))
         }
     }
 
     private var otherMatches: some View {
         VStack(alignment: .leading, spacing: 6) {
-            sectionTitle("Other matches")
+            KSectionHeader(title: "Other matches", index: 6)
             ForEach(Array(content.results.enumerated()), id: \.offset) { i, other in
                 Button {
-                    index = i
+                    withAnimation(K.snap) { index = i }
                 } label: {
-                    HStack {
-                        Text("\(other.headword)【\(other.reading)】").fontWeight(i == index ? .bold : .regular)
+                    HStack(spacing: 10) {
+                        Text(i == index ? "■" : "□").font(K.osd(16)).foregroundStyle(K.red)
+                        Text("\(other.headword)【\(other.reading)】").font(.body.weight(i == index ? .bold : .regular))
                         Text(other.entry.senses.first?.glosses.prefix(2).joined(separator: "; ") ?? "")
-                            .foregroundStyle(.secondary).lineLimit(1)
+                            .font(K.osd(14)).foregroundStyle(K.ink.opacity(0.55)).lineLimit(1)
                     }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
         }
     }
 
+    private func labeled(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(label).font(K.osd(12)).foregroundStyle(K.red).frame(width: 32, alignment: .leading)
+            Text(value).font(.callout)
+        }
+    }
+
     private func kanjiFacts(_ info: KanjiInfo) -> String {
         var facts: [String] = []
-        if let strokes = info.strokes { facts.append("\(strokes) strokes") }
-        if let grade = info.grade { facts.append(grade <= 6 ? "grade \(grade)" : grade == 8 ? "secondary school" : "jinmeiyō") }
-        if let jlpt = info.jlpt { facts.append("old JLPT \(jlpt)") }
-        if let frequency = info.frequency { facts.append("frequency #\(frequency)") }
+        if let strokes = info.strokes { facts.append("\(strokes) STROKES") }
+        if let grade = info.grade { facts.append(grade <= 6 ? "GRADE \(grade)" : grade == 8 ? "SECONDARY" : "JINMEIYO") }
+        if let jlpt = info.jlpt { facts.append("OLD JLPT \(jlpt)") }
+        if let frequency = info.frequency { facts.append("FREQ #\(frequency)") }
         return facts.joined(separator: " · ")
     }
 
     private func highlighted(_ sentence: String) -> AttributedString {
         var attributed = AttributedString(sentence)
         if let range = attributed.range(of: result.matched) {
-            attributed[range].foregroundColor = .yellow
+            attributed[range].foregroundColor = K.red
+            attributed[range].underlineStyle = .single
         }
         return attributed
     }
-
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title.uppercased()).font(.caption.weight(.bold)).foregroundStyle(.secondary)
-    }
-
-    private func tag(_ text: String, _ color: Color) -> some View {
-        Text(text).font(.caption.weight(.semibold)).padding(.horizontal, 6).padding(.vertical, 2)
-            .background(color.opacity(0.25), in: Capsule())
-    }
 }
 
-/// Text with readings above kanji runs.
+/// Text with readings above kanji runs (readings in pixel Japanese).
 struct FuriganaText: View {
     let segments: [FuriganaSegment]
     let size: CGFloat
@@ -199,10 +218,10 @@ struct FuriganaText: View {
     var body: some View {
         HStack(alignment: .bottom, spacing: 0) {
             ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
-                VStack(spacing: 0) {
+                VStack(spacing: 2) {
                     Text(segment.reading ?? " ")
-                        .font(.system(size: size * 0.4))
-                        .foregroundStyle(.secondary)
+                        .font(K.dotFixed(size * 0.36))
+                        .foregroundStyle(K.red)
                         .opacity(segment.reading == nil ? 0 : 1)
                         .fixedSize()
                     Text(segment.text).font(.system(size: size, weight: .semibold)).fixedSize()

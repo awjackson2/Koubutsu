@@ -23,69 +23,91 @@ struct WordBankView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    let due = bank.bank.due(at: Date()).count
+        VStack(spacing: 0) {
+            KSheetHeader(title: "Word bank", subtitle: "\(bank.bank.words.count) SAVED · \(dueCount) DUE") {
+                HStack(spacing: 10) {
+                    Button { exporting = true } label: { KIconLabel(icon: "export", title: "Anki", size: 16) }
+                        .buttonStyle(.k(.secondary))
+                        .disabled(bank.bank.words.isEmpty)
+                    Button("Done") { dismiss() }.buttonStyle(.k(.secondary))
+                }
+            }
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    KSearchField(text: $search, prompt: "SEARCH WORDS, READINGS, MEANINGS")
                     Button {
                         dismiss()
                         startReview()
                     } label: {
-                        Label(due == 0 ? "Nothing due — review later" : "Review \(due) due word\(due == 1 ? "" : "s")",
-                              systemImage: "rectangle.stack")
+                        KIconLabel(icon: "review", title: dueCount == 0 ? "Nothing due" : "Review \(dueCount)", size: 16)
                     }
-                    .disabled(due == 0)
+                    .buttonStyle(.k(.primary))
+                    .disabled(dueCount == 0)
                 }
-                Section("\(bank.bank.words.count) saved") {
-                    if words.isEmpty {
-                        Text("Save words from a word card in study mode (S).").foregroundStyle(.secondary)
-                    }
-                    ForEach(words) { word in
-                        row(word)
-                            .contentShape(Rectangle())
-                            .onTapGesture { open(word) }
-                            .swipeActions {
-                                Button("Delete", role: .destructive) { bank.delete(word) }
-                                Button(word.isKnown ? "Learning" : "Known") { bank.setKnown(!word.isKnown, for: word) }
-                                    .tint(.green)
-                            }
+                KSectionHeader(title: "Saved", index: words.count)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        if words.isEmpty {
+                            Text("SAVE WORDS FROM A WORD CARD IN STUDY MODE (S)_")
+                                .font(K.osd(15)).foregroundStyle(K.ink.opacity(0.5)).padding(.vertical, 20)
+                        }
+                        ForEach(words) { word in
+                            row(word)
+                            Rectangle().fill(K.ink.opacity(0.15)).frame(height: 1)
+                        }
                     }
                 }
             }
-            .searchable(text: $search)
-            .navigationTitle("Word bank")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Export for Anki") { exporting = true }.disabled(bank.bank.words.isEmpty)
-                }
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
-            }
-            .fileExporter(isPresented: $exporting, document: TextFile(text: AnkiExport.tsv(bank.bank.words)),
-                          contentType: .plainText, defaultFilename: "Koubutsu words") { _ in }
-            .sheet(item: $card) { content in
-                WordCardView(content: content, store: store)
-            }
+            .padding(20)
+        }
+        .kSheet()
+        .kTexture(grain: 0.8, scanlines: 0)
+        .fileExporter(isPresented: $exporting, document: TextFile(text: AnkiExport.tsv(bank.bank.words)),
+                      contentType: .plainText, defaultFilename: "Koubutsu words") { _ in }
+        .sheet(item: $card) { content in
+            WordCardView(content: content, store: store)
         }
     }
 
+    private var dueCount: Int { bank.bank.due(at: Date()).count }
+
     private func row(_ word: SavedWord) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            if let image = bank.image(for: word) {
-                Image(uiImage: image).resizable().scaledToFill()
-                    .frame(width: 96, height: 40).clipShape(RoundedRectangle(cornerRadius: 4))
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(word.headword).font(.title3.weight(.semibold))
-                    if word.reading != word.headword { Text(word.reading).foregroundStyle(.secondary) }
-                    if word.isKnown { Text("known").font(.caption).foregroundStyle(.green) }
+        HStack(alignment: .center, spacing: 14) {
+            Button { open(word) } label: {
+                HStack(alignment: .center, spacing: 14) {
+                    if let image = bank.image(for: word) {
+                        Image(uiImage: image).resizable().scaledToFill()
+                            .frame(width: 110, height: 44).clipped()
+                            .grayscale(1).contrast(1.3)
+                            .kFrame(K.red, tick: 6)
+                    }
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(word.headword).font(.title3.weight(.semibold))
+                            if word.reading != word.headword { Text(word.reading).foregroundStyle(K.ink.opacity(0.55)) }
+                            if word.isKnown { KTag(text: "Known", color: K.ink) }
+                        }
+                        Text((word.meanings.first ?? "").uppercased()).font(K.osd(14)).lineLimit(1)
+                        if let sentence = word.sentence {
+                            Text(sentence).font(.caption).foregroundStyle(K.ink.opacity(0.55)).lineLimit(1)
+                        }
+                    }
+                    Spacer(minLength: 8)
+                    if !word.isKnown {
+                        Text(IntervalFormat.dueLabel(word.card.due).uppercased())
+                            .font(K.osd(13))
+                            .foregroundStyle(word.card.due <= Date() ? K.red : K.ink.opacity(0.55))
+                    }
                 }
-                Text(word.meanings.first ?? "").font(.callout).lineLimit(1)
-                if let sentence = word.sentence { Text(sentence).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
+                .contentShape(Rectangle())
             }
-            Spacer()
-            if !word.isKnown { Text(IntervalFormat.dueLabel(word.card.due)).font(.caption).foregroundStyle(.secondary) }
+            .buttonStyle(.plain)
+            Button(word.isKnown ? "Learn" : "Known") { bank.setKnown(!word.isKnown, for: word) }
+                .buttonStyle(.k(.ghost))
+            Button { bank.delete(word) } label: { PixelIcon("trash", size: 16) }
+                .buttonStyle(.k(.ghost))
         }
+        .padding(.vertical, 10)
     }
 
     private func open(_ word: SavedWord) {

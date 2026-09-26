@@ -30,6 +30,10 @@ enum K {
         .custom(dotFontName, size: size, relativeTo: style)
     }
 
+    /// Exact sizes for text fitted into boxes (no Dynamic Type scaling).
+    static func osdFixed(_ size: CGFloat) -> Font { .custom(osdFontName, fixedSize: size) }
+    static func dotFixed(_ size: CGFloat) -> Font { .custom(dotFontName, fixedSize: size) }
+
     static func uiOSD(_ size: CGFloat) -> UIFont {
         UIFont(name: osdFontName, size: size) ?? .monospacedSystemFont(ofSize: size, weight: .regular)
     }

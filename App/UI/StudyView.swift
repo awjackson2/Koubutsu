@@ -27,7 +27,7 @@ struct StudyView: View {
                     dragRectangle
                     loupe(image, size: geometry.size)
                     status
-                        .frame(width: geometry.size.width, alignment: .center)
+                        .frame(width: geometry.size.width, alignment: .leading)
                         .padding(.top, 10)
                 }
             }
@@ -46,10 +46,10 @@ struct StudyView: View {
     private func outlines(_ mapper: CoordinateMapper) -> some View {
         ForEach(session.japaneseObservations) { observation in
             let rect = mapper.viewRect(for: observation.boundingBox)
-            RoundedRectangle(cornerRadius: 3)
-                .stroke(Color.cyan.opacity(0.45), lineWidth: 1)
-                .frame(width: rect.width + 4, height: rect.height + 4)
-                .offset(x: rect.x - 2, y: rect.y - 2)
+            CornerTicks(length: 6)
+                .stroke(K.red.opacity(0.85), lineWidth: 1.5)
+                .frame(width: rect.width + 6, height: rect.height + 6)
+                .offset(x: rect.x - 3, y: rect.y - 3)
         }
         .allowsHitTesting(false)
     }
@@ -57,9 +57,9 @@ struct StudyView: View {
     private func highlights(_ mapper: CoordinateMapper) -> some View {
         ForEach(Array(session.selectionBoxes().enumerated()), id: \.offset) { _, box in
             let rect = mapper.viewRect(for: box)
-            RoundedRectangle(cornerRadius: 3)
-                .fill(Color.yellow.opacity(0.28))
-                .overlay(RoundedRectangle(cornerRadius: 3).stroke(Color.yellow, lineWidth: 2))
+            Rectangle()
+                .fill(K.red.opacity(0.22))
+                .overlay(CornerTicks(length: 8).stroke(K.red, lineWidth: 3))
                 .frame(width: rect.width + 4, height: rect.height + 4)
                 .offset(x: rect.x - 2, y: rect.y - 2)
         }
@@ -71,7 +71,7 @@ struct StudyView: View {
             let rect = CGRect(x: min(start.x, current.x), y: min(start.y, current.y),
                               width: abs(current.x - start.x), height: abs(current.y - start.y))
             Rectangle()
-                .stroke(Color.yellow, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                .stroke(K.red, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
                 .frame(width: rect.width, height: rect.height)
                 .offset(x: rect.minX, y: rect.minY)
                 .allowsHitTesting(false)
@@ -90,28 +90,30 @@ struct StudyView: View {
                     .offset(x: center.x - point.x, y: center.y - point.y)
             }
             .frame(width: size.width, height: size.height)
-            .mask(Circle().frame(width: loupeSize, height: loupeSize).position(center))
-            .overlay(Circle().stroke(Color.white.opacity(0.9), lineWidth: 2)
+            .mask(Rectangle().frame(width: loupeSize, height: loupeSize).position(center))
+            .overlay(Rectangle().stroke(K.paper, lineWidth: 2)
+                .overlay(CornerTicks(length: 16).stroke(K.red, lineWidth: 3))
                 .frame(width: loupeSize, height: loupeSize).position(center))
             .allowsHitTesting(false)
         }
     }
 
     @ViewBuilder private var status: some View {
-        switch session.phase {
-        case .recognizing:
-            Label("Reading the frame…", systemImage: "text.viewfinder")
-                .font(.callout.weight(.semibold))
-                .padding(.horizontal, 12).padding(.vertical, 6)
-                .background(.black.opacity(0.7), in: Capsule())
-        case .failed(let message):
-            Text(message)
-                .font(.callout)
-                .padding(.horizontal, 12).padding(.vertical, 6)
-                .background(.red.opacity(0.7), in: Capsule())
-        case .ready:
-            EmptyView()
+        HStack(spacing: 10) {
+            Text("▮▮ PAUSE").foregroundStyle(K.paper)
+            switch session.phase {
+            case .recognizing:
+                Text("READING_").foregroundStyle(K.red)
+            case .failed(let message):
+                Text(message.uppercased()).foregroundStyle(K.red)
+            case .ready:
+                Text("\(session.japaneseObservations.count) LINES").foregroundStyle(K.paper.opacity(0.7))
+            }
         }
+        .font(K.osd(20))
+        .shadow(color: .black, radius: 0, x: 2, y: 2)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
     }
 
     private func isDrag(_ a: CGPoint, _ b: CGPoint) -> Bool {

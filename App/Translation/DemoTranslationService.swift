@@ -83,6 +83,10 @@ struct LaunchOptions {
     /// Start in full screen (automation screenshots).
     var fullScreen = false
     var overlayStyle: AppSettings.OverlayStyle?
+    /// Present a sheet at launch: settings, words, review, recent (automation screenshots).
+    var openSheet: String?
+    /// Add a few demo words to the word bank (automation screenshots).
+    var seedWords = false
     /// Enter study mode this many seconds after launch (automation screenshots).
     var studyAfter: Double?
     /// Then select this normalized rect: `x,y,w,h`.
@@ -105,11 +109,13 @@ struct LaunchOptions {
             case "--show-debug": showDebug = true
             case "--full-screen": fullScreen = true
             case "--furigana": overlayStyle = .furigana
+            case "--seed-words": seedWords = true
             default:
                 if arg.hasPrefix("--select-video=") { selectVideo = String(arg.dropFirst("--select-video=".count)) }
                 if arg.hasPrefix("--start-at=") { startAt = Double(arg.dropFirst("--start-at=".count)) }
                 if arg.hasPrefix("--study-after=") { studyAfter = Double(arg.dropFirst("--study-after=".count)) }
                 if arg == "--open-card" { openCard = true }
+                if arg.hasPrefix("--open=") { openSheet = String(arg.dropFirst("--open=".count)) }
                 if arg.hasPrefix("--study-tap=") {
                     let v = arg.dropFirst("--study-tap=".count).split(separator: ",").compactMap { Double($0) }
                     if v.count == 2 { studyTap = NormalizedPoint(x: v[0], y: v[1]) }

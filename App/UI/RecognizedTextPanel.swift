@@ -9,28 +9,29 @@ struct RecognizedTextPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             if let status {
-                Text(status).foregroundStyle(.orange)
+                Text(status.uppercased()).font(K.osd(14)).foregroundStyle(K.red)
             }
             if let result, !result.observations.isEmpty {
                 ForEach(result.observations) { observation in
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        Text("JP").font(.caption.bold()).foregroundStyle(.secondary)
+                        Text("JP").font(K.osd(12)).foregroundStyle(K.red)
                         Text(observation.text).font(.title3)
                         Spacer(minLength: 8)
                         Text(String(format: "%.2f", observation.confidence))
-                            .font(.caption.monospaced())
-                            .foregroundStyle(observation.confidence >= 0.5 ? Color.green : Color.orange)
+                            .font(K.osd(12))
+                            .foregroundStyle(observation.confidence >= 0.5 ? K.paper : K.red)
                         Text(observation.boundingBox.description)
-                            .font(.caption2.monospaced())
-                            .foregroundStyle(.secondary)
+                            .font(K.osd(11))
+                            .foregroundStyle(K.paper.opacity(0.5))
                     }
                 }
             } else {
-                Text(result == nil ? "Waiting for OCR…" : "No text recognized")
-                    .foregroundStyle(.secondary)
+                Text(result == nil ? "WAITING FOR OCR_" : "NO TEXT RECOGNIZED")
+                    .font(K.osd(14))
+                    .foregroundStyle(K.paper.opacity(0.55))
             }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(K.paper)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

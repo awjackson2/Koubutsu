@@ -45,6 +45,9 @@ series fullscreen --reset-settings --demo-translator --display-mode=overlay --fu
 series study --reset-settings --demo-translator --display-mode=overlay --start-at=12 --pause-after=1 --study-after=40 --study-select=0.1,0.72,0.45,0.18
 series card --reset-settings --demo-translator --display-mode=overlay --start-at=12 --pause-after=1 --study-after=40 --study-tap=0.303,0.761 --open-card
 series furigana --reset-settings --demo-translator --display-mode=overlay --furigana
+series settings --reset-settings --demo-translator --open=settings
+series words --reset-settings --demo-translator --seed-words --open=words
+series review --reset-settings --demo-translator --seed-words --open=review
 xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
 ls -la build/screenshots
 echo "--- crash reports ---"

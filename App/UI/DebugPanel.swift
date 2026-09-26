@@ -35,17 +35,17 @@ struct DebugPanel: View {
                 m.translationCacheHitRate.map { String(format: "hit rate %.0f%%  dup text %d", $0 * 100, m.duplicateTextDetections) }
                     ?? "dup text \(m.duplicateTextDetections)")
         }
-        .font(.caption.monospaced())
-        .foregroundStyle(.white)
+        .font(K.osd(12))
+        .foregroundStyle(K.paper)
         .frame(maxWidth: .infinity, alignment: .leading)
         HStack(alignment: .top) {
             Button(model.isBenchmarking ? "Benchmarking…" : "Run benchmark") {
                 Task { await model.runBenchmark() }
             }
             .disabled(model.isBenchmarking)
-            .font(.caption)
+            .buttonStyle(.k(.secondary))
             if let report = model.benchmarkReport {
-                Text(report).font(.caption2.monospaced()).foregroundStyle(.secondary)
+                Text(report).font(K.osd(11)).foregroundStyle(K.paper.opacity(0.55))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -76,9 +76,9 @@ struct DebugPanel: View {
 
     private func row(_ title: String, _ value: String, _ detail: String) -> some View {
         GridRow {
-            Text(title).foregroundStyle(.secondary)
+            Text(title.uppercased()).foregroundStyle(K.red)
             Text(value)
-            Text(detail).foregroundStyle(.secondary)
+            Text(detail).foregroundStyle(K.paper.opacity(0.55))
         }
     }
 }

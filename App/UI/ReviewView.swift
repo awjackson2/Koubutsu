@@ -14,66 +14,78 @@ struct ReviewView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
+        VStack(spacing: 0) {
+            KSheetHeader(title: "Review", subtitle: queue.isEmpty ? "SESSION COMPLETE" : "\(queue.count) LEFT · \(reviewed) DONE") {
+                Button("Done") { dismiss() }.buttonStyle(.k(.secondary))
+            }
+            VStack(spacing: 24) {
                 if let word = current {
                     card(word)
+                        .id(word.id.uuidString + (showingAnswer ? "a" : "q"))
+                        .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
                     Spacer(minLength: 0)
                     if showingAnswer {
                         ratingButtons(word)
                     } else {
-                        Button("Show answer") { showingAnswer = true }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.large)
+                        Button("Show answer  [SPACE]") { withAnimation(K.snap) { showingAnswer = true } }
+                            .buttonStyle(.kPrimary)
                             .keyboardShortcut(.space, modifiers: [])
                     }
                 } else {
                     Spacer()
-                    Image(systemName: "checkmark.circle").font(.system(size: 56)).foregroundStyle(.green)
-                    Text(reviewed == 0 ? "Nothing is due." : "Done — \(reviewed) reviewed.").font(.title2)
+                    PixelIcon("check", size: 64).foregroundStyle(K.red)
+                    Text(reviewed == 0 ? "NOTHING IS DUE." : "DONE — \(reviewed) REVIEWED.").font(K.osd(28))
                     if let next = bank.bank.words.filter({ !$0.isKnown }).map(\.card.due).min() {
-                        Text("Next review " + IntervalFormat.dueLabel(next)).foregroundStyle(.secondary)
+                        Text("NEXT REVIEW " + IntervalFormat.dueLabel(next).uppercased()).font(K.osd(16)).foregroundStyle(K.ink.opacity(0.55))
                     }
                     Spacer()
                 }
             }
-            .padding()
-            .navigationTitle(queue.isEmpty ? "Review" : "Review · \(queue.count) left")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
-            }
-            .onAppear { queue = bank.bank.due(at: Date()).map(\.id) }
+            .padding(24)
+            .animation(K.snap, value: queue.first)
+            .animation(K.snap, value: showingAnswer)
         }
+        .kSheet()
+        .kTexture(grain: 0.8, scanlines: 0)
+        .onAppear { queue = bank.bank.due(at: Date()).map(\.id) }
     }
 
     private func card(_ word: SavedWord) -> some View {
         VStack(spacing: 14) {
             if showingAnswer {
-                FuriganaText(segments: Furigana.align(written: word.headword, reading: word.reading), size: 56)
-                Text("\(word.reading) · \(Romaji.hepburn(word.reading))").font(.title3).foregroundStyle(.secondary)
+                FuriganaText(segments: Furigana.align(written: word.headword, reading: word.reading), size: 64)
+                Text("\(word.reading)  \(Romaji.hepburn(word.reading).uppercased())").font(K.osd(22)).foregroundStyle(K.ink.opacity(0.6))
             } else {
-                Text(word.headword).font(.system(size: 56, weight: .semibold))
+                Text(word.headword).font(.system(size: 64, weight: .semibold))
             }
             if let image = bank.image(for: word) {
                 Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 90)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .grayscale(1).contrast(1.3)
+                    .kFrame(K.red, tick: 10)
             }
             if let sentence = word.sentence { Text(sentence).font(.title3) }
             if showingAnswer {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(Array(word.meanings.enumerated()), id: \.offset) { i, meaning in
-                        Text("\(i + 1). \(meaning)")
+                        HStack(alignment: .firstTextBaseline, spacing: 10) {
+                            Text(String(format: "%02d", i + 1)).foregroundStyle(K.red)
+                            Text(meaning.uppercased())
+                        }
+                        .font(K.osd(18))
                     }
                     if let translation = word.sentenceTranslation {
-                        Text(translation).foregroundStyle(.secondary)
+                        Text(translation).font(K.osd(15)).foregroundStyle(K.ink.opacity(0.6))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                Button { Speaker.shared.speak(word.reading) } label: { Label("Listen", systemImage: "speaker.wave.2") }
+                Button { Speaker.shared.speak(word.reading) } label: { KIconLabel(icon: "speaker", title: "Listen", size: 16) }
+                    .buttonStyle(.k(.secondary))
             }
         }
-        .frame(maxWidth: 700)
+        .padding(28)
+        .frame(maxWidth: 760)
+        .background(K.paperShade.opacity(0.6))
+        .kFrame(K.red, tick: 16, hairline: K.ink.opacity(0.2))
     }
 
     private func ratingButtons(_ word: SavedWord) -> some View {
@@ -88,26 +100,17 @@ struct ReviewView: View {
                     // Failed words come back in this session once their short delay has passed.
                     if rating == .again { queue.append(word.id) }
                 } label: {
-                    VStack {
-                        Text(rating.label).font(.headline)
-                        Text(IntervalFormat.short(preview[rating] ?? 0)).font(.caption)
+                    VStack(spacing: 4) {
+                        Text("\(rating.rawValue) · \(rating.label)")
+                        Text(IntervalFormat.short(preview[rating] ?? 0)).font(K.osd(12))
                     }
                     .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
-                .tint(color(rating))
+                .buttonStyle(KButtonStyle(kind: rating == .again ? .primary : .secondary))
                 .keyboardShortcut(KeyEquivalent(Character(String(rating.rawValue))), modifiers: [])
             }
         }
         .frame(maxWidth: 700)
     }
 
-    private func color(_ rating: ReviewRating) -> Color {
-        switch rating {
-        case .again: .red
-        case .hard: .orange
-        case .good: .green
-        case .easy: .blue
-        }
-    }
 }

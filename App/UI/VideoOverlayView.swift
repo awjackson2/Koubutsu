@@ -53,7 +53,7 @@ struct VideoOverlayView: View {
                     path.addRect(mapper.viewRect(for: observation.boundingBox).cgRect)
                 }
             }
-            .stroke(Color.yellow.opacity(0.9), lineWidth: 2)
+            .stroke(K.red, lineWidth: 2)
         }
     }
 
@@ -68,14 +68,15 @@ struct VideoOverlayView: View {
         return ForEach(placements, id: \.id) { placement in
             if let text = byID[placement.id]?.visibleTranslation {
                 Text(text)
-                    .font(.system(size: placement.fontSize, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(K.osdFixed(placement.fontSize))
+                    .foregroundStyle(K.paper)
                     .lineSpacing(0)
                     .lineLimit(placement.lineLimit)
                     .minimumScaleFactor(0.4)
                     .padding(layout.padding)
                     .frame(width: placement.frame.width, height: placement.frame.height, alignment: .leading)
-                    .background(Color(white: 0.06), in: RoundedRectangle(cornerRadius: 4))
+                    .background(K.ink)
+                    .overlay(alignment: .topLeading) { Rectangle().fill(K.red).frame(width: 6, height: 2) }
                     .offset(x: placement.frame.x, y: placement.frame.y)
             }
         }
@@ -103,17 +104,17 @@ extension VideoOverlayView {
             if let reading = mark.reading {
                 let size = max(9, min(28, mark.rect.height * 0.42 * textScale))
                 Text(reading)
-                    .font(.system(size: size, weight: .semibold))
-                    .foregroundStyle(mark.learning ? Color.yellow : Color.white)
+                    .font(K.dotFixed(size))
+                    .foregroundStyle(mark.learning ? K.red : K.paper)
                     .lineLimit(1)
                     .fixedSize()
                     .padding(.horizontal, 3)
-                    .background(Color.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 3))
+                    .background(K.ink.opacity(0.78))
                     .frame(width: max(mark.rect.width, 1), height: size * 1.3)
                     .offset(x: mark.rect.x, y: mark.rect.y - size * 1.35)
             } else {
                 Rectangle()
-                    .fill(Color.yellow)
+                    .fill(K.red)
                     .frame(width: mark.rect.width, height: max(2, mark.rect.height * 0.08))
                     .offset(x: mark.rect.x, y: mark.rect.maxY + 1)
             }

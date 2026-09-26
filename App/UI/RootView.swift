@@ -57,6 +57,8 @@ struct RootView: View {
         .background(Color.black)
         .ignoresSafeArea(edges: .top)
         .preferredColorScheme(.dark)
+        .tint(K.red)
+        .font(K.osd(16))
         .persistentSystemOverlays(.hidden)
         .statusBarHidden(isFullScreen)
         .animation(.easeInOut(duration: 0.2), value: showsChrome)
@@ -91,6 +93,7 @@ struct RootView: View {
             await model.applyLaunchPlayback()
         }
         .task { await applyLaunchStudy() }
+        .task { applyLaunchSheets() }
         .onChange(of: scenePhase) { _, phase in
             Task { await model.scenePhaseChanged(phase) }
         }
@@ -140,6 +143,19 @@ struct RootView: View {
         resumeAfterStudy = await model.pauseForStudy()
         await study.begin(frame: frame, ocr: model.ocrService, translator: model.translation,
                           lookup: model.dictionary.lookup)
+    }
+
+    /// `--seed-words`, `--open=settings|words|review|recent` (CI screenshots of the sheets).
+    private func applyLaunchSheets() {
+        let options = LaunchOptions.current
+        if options.seedWords { model.wordBank.seedDemo() }
+        switch options.openSheet {
+        case "settings": showingSettings = true
+        case "words": showingWordBank = true
+        case "review": showingReview = true
+        case "recent": showingRecentLines = true
+        default: break
+        }
     }
 
     /// `--study-after=` / `--study-select=` (CI screenshots of study mode).
@@ -200,10 +216,11 @@ struct RootView: View {
             }
             .overlay(alignment: .top) {
                 if peeking && !study.isActive {
-                    Text("Original")
-                        .font(.caption.bold())
+                    Text("▶ ORIGINAL")
+                        .font(K.osd(18))
+                        .foregroundStyle(K.paper)
                         .padding(.horizontal, 10).padding(.vertical, 4)
-                        .background(.black.opacity(0.6), in: Capsule())
+                        .background(K.ink.opacity(0.75))
                         .padding(.top, 8)
                 }
             }
@@ -227,12 +244,13 @@ struct RootView: View {
                             .padding(.vertical, 8)
                     }
                     .frame(height: 150)
-                    .background(Color(white: 0.05))
+                    .kSurface(.ink)
+                    .overlay(alignment: .top) { Rectangle().fill(K.paper.opacity(0.18)).frame(height: 1) }
                 } else if translationController.statusMessage != nil {
                     TranslationPanel(controller: translationController, showOriginal: false, showTranslation: false)
                         .padding(.horizontal)
                         .padding(.vertical, 8)
-                        .background(Color(white: 0.05))
+                        .kSurface(.ink)
                 }
                 if model.settings.showRecognizedText {
                     ScrollView {
@@ -241,13 +259,15 @@ struct RootView: View {
                             .padding(.vertical, 4)
                     }
                     .frame(height: 140)
-                    .background(Color(white: 0.08))
+                    .kSurface(.ink)
+                    .overlay(alignment: .top) { Rectangle().fill(K.paper.opacity(0.18)).frame(height: 1) }
                 }
                 if model.settings.showDebugStatistics {
                     DebugPanel(model: model)
                         .padding(.horizontal)
                         .padding(.vertical, 6)
-                        .background(Color(white: 0.08))
+                        .kSurface(.ink)
+                        .overlay(alignment: .top) { Rectangle().fill(K.paper.opacity(0.18)).frame(height: 1) }
                 }
                 ControlBar(model: model, isFullScreen: isFullScreen, showingImporter: $showingImporter,
                            showingSettings: $showingSettings, showingRecentLines: $showingRecentLines,
@@ -261,11 +281,12 @@ struct RootView: View {
 
     @ViewBuilder private var sourceMessage: some View {
         if let message = model.errorMessage {
-            Text(message)
-                .font(.headline)
-                .foregroundStyle(.white)
+            Text(message.uppercased())
+                .font(K.osd(16))
+                .foregroundStyle(K.paper)
                 .padding()
-                .background(.red.opacity(0.7), in: RoundedRectangle(cornerRadius: 8))
+                .background(K.red)
+                .kFrame(K.paper, tick: 10)
         }
     }
 }
@@ -282,106 +303,147 @@ private struct ControlBar: View {
     let toggleStudy: () -> Void
 
     var body: some View {
-        HStack(spacing: 16) {
-            Menu {
-                ForEach(model.mediaItems) { item in
-                    Button(item.origin == .bundled ? "\(item.name) (bundled)" : item.name) {
-                        Task { await model.select(.media(item)) }
-                    }
-                }
-                Divider()
-                if model.captureDevices.devices.isEmpty {
-                    Button("USB capture (none connected)") { Task { await model.select(.uvc(nil)) } }
-                } else {
-                    ForEach(model.captureDevices.devices) { device in
-                        Button("\(device.name) (USB capture)") { Task { await model.select(.uvc(device)) } }
-                    }
-                }
-                Divider()
-                Button("Import video…") { showingImporter = true }
-            } label: {
-                Label(model.selection?.label ?? "Select source", systemImage: "play.rectangle")
+        HStack(spacing: 4) {
+            Image("LogoMark")
+                .resizable()
+                .interpolation(.none)
+                .frame(width: 32, height: 32)
+                .padding(.trailing, 6)
+            KMenu(items: sourceItems) {
+                KIconLabel(icon: "source", title: model.selection?.label ?? "SOURCE")
+                    .frame(maxWidth: 240, alignment: .leading)
             }
             Button {
                 Task { model.isRunning ? await model.stop() : await model.start() }
             } label: {
-                Image(systemName: model.isRunning ? "stop.fill" : "play.fill")
+                KIconLabel(icon: model.isRunning ? "stop" : "play")
             }
+            .buttonStyle(KIconButtonStyle())
+            divider
             Button(action: cycleOverlay) {
-                Label(overlayLabel.title, systemImage: overlayLabel.icon)
+                KIconLabel(icon: overlayLabel.icon, title: overlayLabel.title)
             }
+            .buttonStyle(KIconButtonStyle(active: model.settings.showTranslation))
             .help("English → furigana → original Japanese (T)")
-            Menu {
-                Toggle("English over Japanese", isOn: settingBinding(\.showTranslation))
-                Toggle("Japanese text list", isOn: settingBinding(\.showRecognizedText))
-                Toggle("Japanese in translation panel", isOn: settingBinding(\.showOriginalText))
-                Toggle("OCR boxes", isOn: settingBinding(\.showOCRBoxes))
-                Toggle("Debug statistics", isOn: settingBinding(\.showDebugStatistics))
-            } label: {
-                Image(systemName: "eye")
-            }
-            Button(action: toggleStudy) {
-                Label("Study", systemImage: "book")
-            }
-            .help("Freeze the frame and look up words (S)")
+            KMenu(items: viewItems) { KIconLabel(icon: "eye") }
+            divider
+            Button(action: toggleStudy) { KIconLabel(icon: "study", title: "Study") }
+                .buttonStyle(KIconButtonStyle())
+                .help("Freeze the frame and look up words (S)")
             Button {
                 showingWordBank = true
             } label: {
                 let due = model.wordBank.bank.due(at: Date()).count
-                Label(due > 0 ? "\(due)" : "Words", systemImage: "rectangle.stack")
+                HStack(spacing: 6) {
+                    PixelIcon("words")
+                    Text("Words")
+                    if due > 0 { KTag(text: "\(due)", filled: true) }
+                }
             }
+            .buttonStyle(KIconButtonStyle())
             .help("Word bank and review (W, R)")
-            Button {
-                showingRecentLines = true
-            } label: {
-                Image(systemName: "text.bubble")
-            }
-            .help("Recent lines (H)")
-            Button {
-                toggleFullScreen()
-            } label: {
-                Image(systemName: isFullScreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-            }
-            .help("Full screen (F)")
-            Button {
-                showingSettings = true
-            } label: {
-                Image(systemName: "gearshape")
-            }
-            Spacer()
-            Text(statusText)
-                .font(.caption.monospaced())
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            Button { showingRecentLines = true } label: { KIconLabel(icon: "recent") }
+                .buttonStyle(KIconButtonStyle())
+                .help("Recent lines (H)")
+            Button(action: toggleFullScreen) { KIconLabel(icon: isFullScreen ? "windowed" : "fullscreen") }
+                .buttonStyle(KIconButtonStyle(active: isFullScreen))
+                .help("Full screen (F)")
+            Button { showingSettings = true } label: { KIconLabel(icon: "settings") }
+                .buttonStyle(KIconButtonStyle())
+            Spacer(minLength: 8)
+            OSDStatus(model: model)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(.bar)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .kSurface(.ink)
+        .overlay(alignment: .top) { Rectangle().fill(K.red).frame(height: 2) }
+    }
+
+    private var divider: some View {
+        Rectangle().fill(K.paper.opacity(0.18)).frame(width: 1, height: 22).padding(.horizontal, 4)
+    }
+
+    private func sourceItems() -> [KMenuItem] {
+        var items = model.mediaItems.map { item in
+            KMenuItem(title: item.origin == .bundled ? "\(item.name) (bundled)" : item.name, icon: "play",
+                      isChecked: model.selection?.label == item.name) {
+                Task { await model.select(.media(item)) }
+            }
+        }
+        items.append(.divider)
+        if model.captureDevices.devices.isEmpty {
+            items.append(KMenuItem(title: "USB capture (none connected)", icon: "source") {
+                Task { await model.select(.uvc(nil)) }
+            })
+        } else {
+            for device in model.captureDevices.devices {
+                items.append(KMenuItem(title: "\(device.name) (USB)", icon: "source",
+                                       isChecked: model.selection?.label == device.name) {
+                    Task { await model.select(.uvc(device)) }
+                })
+            }
+        }
+        items.append(.divider)
+        items.append(KMenuItem(title: "Import video…", icon: "import") { showingImporter = true })
+        return items
+    }
+
+    private func viewItems() -> [KMenuItem] {
+        [
+            toggleItem("English over Japanese", \.showTranslation),
+            toggleItem("Japanese text list", \.showRecognizedText),
+            toggleItem("Japanese in panel", \.showOriginalText),
+            toggleItem("OCR boxes", \.showOCRBoxes),
+            toggleItem("Debug statistics", \.showDebugStatistics),
+        ]
+    }
+
+    private func toggleItem(_ title: String, _ keyPath: WritableKeyPath<AppSettings, Bool>) -> KMenuItem {
+        KMenuItem(title: title, isChecked: model.settings[keyPath: keyPath]) {
+            model.settings[keyPath: keyPath].toggle()
+        }
     }
 
     private var overlayLabel: (title: String, icon: String) {
-        if !model.settings.showTranslation { return ("Japanese", "character.bubble") }
-        return model.settings.overlayStyle == .english ? ("English", "character.bubble.fill") : ("Furigana", "textformat.size.ja")
+        if !model.settings.showTranslation { return ("JP", "japanese") }
+        return model.settings.overlayStyle == .english ? ("EN", "english") : ("Furigana", "furigana")
+    }
+}
+
+/// VCR-style status readout: a blinking record dot, state, format and frame rates.
+private struct OSDStatus: View {
+    let model: AppModel
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.6)) { context in
+            let blink = Int(context.date.timeIntervalSinceReferenceDate / 0.6) % 2 == 0
+            HStack(spacing: 8) {
+                Rectangle()
+                    .fill(model.isRunning ? K.red : K.grey)
+                    .frame(width: 8, height: 8)
+                    .opacity(model.isRunning && !blink ? 0.25 : 1)
+                Text(text)
+            }
+            .font(K.osd(13))
+            .foregroundStyle(K.paper.opacity(0.7))
+            .lineLimit(1)
+        }
     }
 
-    private func settingBinding(_ keyPath: WritableKeyPath<AppSettings, Bool>) -> Binding<Bool> {
-        Binding(get: { model.settings[keyPath: keyPath] }, set: { model.settings[keyPath: keyPath] = $0 })
-    }
-
-    private var statusText: String {
+    private var text: String {
         let m = model.metrics
         let size = model.format.map { "\($0.size)" } ?? "—"
-        return String(format: "%@ · %@ · in %.1f fps · shown %.1f fps", stateLabel, size,
-                      m.framesReceivedPerSecond, m.framesDisplayedPerSecond)
+        return String(format: "%@  %@  %.0f/%.0fFPS", stateLabel, size, m.framesReceivedPerSecond,
+                      m.framesDisplayedPerSecond).uppercased()
     }
 
     private var stateLabel: String {
         switch model.sourceState {
-        case .idle: "idle"
-        case .starting: "starting"
-        case .running: "running"
-        case .stopped: "stopped"
-        case .failed: "failed"
+        case .idle: "IDLE"
+        case .starting: "LOAD"
+        case .running: "REC"
+        case .stopped: "STOP"
+        case .failed: "ERR"
         }
     }
 }

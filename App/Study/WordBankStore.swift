@@ -46,6 +46,27 @@ final class WordBankStore {
         persist()
     }
 
+    /// Demo content for screenshots (`--seed-words`); does nothing if the bank already has words.
+    func seedDemo(now: Date = Date()) {
+        guard bank.words.isEmpty else { return }
+        let samples: [(Int, String, String, [String], String, String)] = [
+            (1582000, "敵", "てき", ["opponent; rival; adversary", "menace; danger; threat; enemy"],
+             "この先には強い敵がいる。", "There is a powerful enemy ahead."),
+            (1260490, "鍵", "かぎ", ["key", "lock"], "鍵が必要です", "You need a key."),
+            (1433600, "強い", "つよい", ["strong; potent; competent", "strong; brawny; powerful"],
+             "この先には強い敵がいる。", "There is a powerful enemy ahead."),
+            (1215440, "冒険", "ぼうけん", ["adventure; venture"], "冒険を始めますか？", "Begin the adventure?"),
+        ]
+        for (i, sample) in samples.enumerated() {
+            var word = SavedWord(entryID: sample.0, headword: sample.1, reading: sample.2, meanings: sample.3,
+                                 sentence: sample.4, sentenceTranslation: sample.5, source: "synthetic_ja_1080p60",
+                                 created: now.addingTimeInterval(Double(-i) * 60))
+            if i == 3 { word.isKnown = true }
+            bank.add(word)
+        }
+        persist()
+    }
+
     func delete(_ word: SavedWord) {
         if let file = word.imageFile { try? FileManager.default.removeItem(at: imagesDirectory.appendingPathComponent(file)) }
         bank.remove(id: word.id)
