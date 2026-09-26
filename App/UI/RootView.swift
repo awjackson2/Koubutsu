@@ -16,9 +16,12 @@ struct RootView: View {
     @State private var hideChromeTask: Task<Void, Never>?
     /// Press-and-hold on the video: show the original Japanese.
     @State private var peeking = false
+    @State private var study = StudySession()
+    /// A file source was playing when study mode froze it.
+    @State private var resumeAfterStudy = false
     @Environment(\.scenePhase) private var scenePhase
 
-    private var showsChrome: Bool { !isFullScreen || chromeRevealed }
+    private var showsChrome: Bool { !isFullScreen || chromeRevealed || study.isActive }
 
     var body: some View {
         GeometryReader { geometry in
@@ -32,7 +35,7 @@ struct RootView: View {
                     .contentShape(Rectangle())
                     .onTapGesture { stageTapped() }
                     .onLongPressGesture(minimumDuration: 0.25, maximumDistance: 30) {
-                        peeking = true
+                        if !study.isActive { peeking = true }
                     } onPressingChanged: { pressing in
                         if !pressing { peeking = false }
                     }
@@ -73,6 +76,7 @@ struct RootView: View {
             await model.start()
             await model.applyLaunchPlayback()
         }
+        .task { await applyLaunchStudy() }
         .onChange(of: scenePhase) { _, phase in
             Task { await model.scenePhaseChanged(phase) }
         }
@@ -85,12 +89,34 @@ struct RootView: View {
         KeyboardShortcuts.Actions(
             toggleFullScreen: { toggleFullScreen() },
             toggleEnglish: { model.settings.showTranslation.toggle() },
+            toggleStudy: { Task { await toggleStudy() } },
             showRecentLines: { showingRecentLines = true },
             showSettings: { showingSettings = true })
     }
 
+    private func toggleStudy() async {
+        if study.isActive {
+            study.end()
+            if resumeAfterStudy { await model.resumeAfterStudy() }
+            resumeAfterStudy = false
+            return
+        }
+        guard let frame = model.pipeline.latestFrame else { return }
+        resumeAfterStudy = await model.pauseForStudy()
+        await study.begin(frame: frame, ocr: model.ocrService, translator: model.translation)
+    }
+
+    /// `--study-after=` / `--study-select=` (CI screenshots of study mode).
+    private func applyLaunchStudy() async {
+        let options = LaunchOptions.current
+        guard let delay = options.studyAfter else { return }
+        try? await Task.sleep(for: .seconds(delay))
+        await toggleStudy()
+        if let rect = options.studySelect { study.select(rect: rect) }
+    }
+
     private func stageTapped() {
-        guard isFullScreen else { return }
+        guard isFullScreen, !study.isActive else { return }
         chromeRevealed.toggle()
         scheduleChromeHide()
     }
@@ -125,8 +151,11 @@ struct RootView: View {
                                  textScale: model.settings.overlayTextScale)
             }
             .overlay(alignment: .center) { sourceMessage }
+            .overlay {
+                if study.isActive { StudyView(session: study) }
+            }
             .overlay(alignment: .top) {
-                if peeking {
+                if peeking && !study.isActive {
                     Text("Original")
                         .font(.caption.bold())
                         .padding(.horizontal, 10).padding(.vertical, 4)
@@ -140,41 +169,45 @@ struct RootView: View {
     private var chrome: some View {
         let translationController = model.translation
         return VStack(spacing: 0) {
-            VideoTransportBar(model: model, showingImporter: $showingImporter)
-            if model.settings.displayMode != .overlay {
-                ScrollView {
-                    TranslationPanel(controller: translationController,
-                                     showOriginal: model.settings.showOriginalText,
-                                     showTranslation: model.settings.showTranslation)
+            if study.isActive {
+                StudyPanel(session: study) { Task { await toggleStudy() } }
+            } else {
+                VideoTransportBar(model: model, showingImporter: $showingImporter)
+                if model.settings.displayMode != .overlay {
+                    ScrollView {
+                        TranslationPanel(controller: translationController,
+                                         showOriginal: model.settings.showOriginalText,
+                                         showTranslation: model.settings.showTranslation)
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
+                    }
+                    .frame(height: 150)
+                    .background(Color(white: 0.05))
+                } else if translationController.statusMessage != nil {
+                    TranslationPanel(controller: translationController, showOriginal: false, showTranslation: false)
                         .padding(.horizontal)
                         .padding(.vertical, 8)
+                        .background(Color(white: 0.05))
                 }
-                .frame(height: 150)
-                .background(Color(white: 0.05))
-            } else if translationController.statusMessage != nil {
-                TranslationPanel(controller: translationController, showOriginal: false, showTranslation: false)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .background(Color(white: 0.05))
-            }
-            if model.settings.showRecognizedText {
-                ScrollView {
-                    RecognizedTextPanel(result: model.latestOCR, status: model.ocrStatus)
-                        .padding(.horizontal)
-                        .padding(.vertical, 4)
-                }
-                .frame(height: 140)
-                .background(Color(white: 0.08))
-            }
-            if model.settings.showDebugStatistics {
-                DebugPanel(model: model)
-                    .padding(.horizontal)
-                    .padding(.vertical, 6)
+                if model.settings.showRecognizedText {
+                    ScrollView {
+                        RecognizedTextPanel(result: model.latestOCR, status: model.ocrStatus)
+                            .padding(.horizontal)
+                            .padding(.vertical, 4)
+                    }
+                    .frame(height: 140)
                     .background(Color(white: 0.08))
+                }
+                if model.settings.showDebugStatistics {
+                    DebugPanel(model: model)
+                        .padding(.horizontal)
+                        .padding(.vertical, 6)
+                        .background(Color(white: 0.08))
+                }
+                ControlBar(model: model, isFullScreen: isFullScreen, showingImporter: $showingImporter,
+                           showingSettings: $showingSettings, showingRecentLines: $showingRecentLines,
+                           toggleFullScreen: toggleFullScreen, toggleStudy: { Task { await toggleStudy() } })
             }
-            ControlBar(model: model, isFullScreen: isFullScreen, showingImporter: $showingImporter,
-                       showingSettings: $showingSettings, showingRecentLines: $showingRecentLines,
-                       toggleFullScreen: toggleFullScreen)
         }
         .simultaneousGesture(TapGesture().onEnded { scheduleChromeHide() })
     }
@@ -197,6 +230,7 @@ private struct ControlBar: View {
     @Binding var showingSettings: Bool
     @Binding var showingRecentLines: Bool
     let toggleFullScreen: () -> Void
+    let toggleStudy: () -> Void
 
     var body: some View {
         HStack(spacing: 16) {
@@ -240,6 +274,10 @@ private struct ControlBar: View {
             } label: {
                 Image(systemName: "eye")
             }
+            Button(action: toggleStudy) {
+                Label("Study", systemImage: "book")
+            }
+            .help("Freeze the frame and look up words (S)")
             Button {
                 showingRecentLines = true
             } label: {

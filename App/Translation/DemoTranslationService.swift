@@ -82,6 +82,10 @@ struct LaunchOptions {
     var showDebug: Bool?
     /// Start in full screen (automation screenshots).
     var fullScreen = false
+    /// Enter study mode this many seconds after launch (automation screenshots).
+    var studyAfter: Double?
+    /// Then select this normalized rect: `x,y,w,h`.
+    var studySelect: NormalizedRect?
 
     static let current = LaunchOptions(arguments: CommandLine.arguments)
 
@@ -98,6 +102,11 @@ struct LaunchOptions {
             default:
                 if arg.hasPrefix("--select-video=") { selectVideo = String(arg.dropFirst("--select-video=".count)) }
                 if arg.hasPrefix("--start-at=") { startAt = Double(arg.dropFirst("--start-at=".count)) }
+                if arg.hasPrefix("--study-after=") { studyAfter = Double(arg.dropFirst("--study-after=".count)) }
+                if arg.hasPrefix("--study-select=") {
+                    let v = arg.dropFirst("--study-select=".count).split(separator: ",").compactMap { Double($0) }
+                    if v.count == 4 { studySelect = NormalizedRect(x: v[0], y: v[1], width: v[2], height: v[3]) }
+                }
                 if arg.hasPrefix("--pause-after=") { pauseAfter = Double(arg.dropFirst("--pause-after=".count)) }
                 if arg.hasPrefix("--display-mode=") {
                     displayMode = AppSettings.DisplayMode(rawValue: String(arg.dropFirst("--display-mode=".count)))

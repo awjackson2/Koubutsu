@@ -23,9 +23,12 @@ public struct RecognizedTextObservation: Sendable, Hashable, Identifiable {
     /// Top candidates including the chosen one at index 0.
     public var candidates: [Candidate]
     public var frame: FrameTiming
+    /// One box per character (grapheme) of `text`, when requested (`OCRConfiguration.characterBoxes`).
+    public var characterBoxes: [NormalizedRect]?
 
     public init(id: UUID = UUID(), text: String, confidence: Float, boundingBox: NormalizedRect,
-                quad: NormalizedQuad? = nil, candidates: [Candidate] = [], frame: FrameTiming) {
+                quad: NormalizedQuad? = nil, candidates: [Candidate] = [], frame: FrameTiming,
+                characterBoxes: [NormalizedRect]? = nil) {
         self.id = id
         self.text = text
         self.confidence = confidence
@@ -33,6 +36,7 @@ public struct RecognizedTextObservation: Sendable, Hashable, Identifiable {
         self.quad = quad
         self.candidates = candidates
         self.frame = frame
+        self.characterBoxes = characterBoxes
     }
 }
 

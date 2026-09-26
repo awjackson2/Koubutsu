@@ -42,6 +42,7 @@ series() { # name, launch args...
 series panel_debug --reset-settings --demo-translator --display-mode=panel --show-boxes --show-debug
 series overlay --reset-settings --demo-translator --display-mode=overlay --hide-debug
 series fullscreen --reset-settings --demo-translator --display-mode=overlay --full-screen
+series study --reset-settings --demo-translator --display-mode=overlay --study-after=50 --study-select=0.05,0.55,0.9,0.4
 xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
 ls -la build/screenshots
 echo "--- crash reports ---"

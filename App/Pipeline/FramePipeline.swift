@@ -11,6 +11,10 @@ final class FramePipeline: Sendable {
     let metrics: PipelineMetrics
     private let clock: any HostClock
     private let tap = Mutex<SampledFrameTap?>(nil)
+    /// Most recent frame, for study mode's freeze. Holding one frame reference is O(1) on the delivery path.
+    private let latest = Mutex<VideoFrame?>(nil)
+
+    var latestFrame: VideoFrame? { latest.withLock { $0 } }
 
     init(renderer: SampleBufferRenderer, metrics: PipelineMetrics, clock: any HostClock) {
         self.renderer = renderer
@@ -37,6 +41,7 @@ final class FramePipeline: Sendable {
 
     func handle(_ frame: VideoFrame) {
         renderer.enqueue(frame)
+        latest.withLock { $0 = frame }
         metrics.frameDisplayed(at: clock.now())
         metrics.frameReceived(frame.timing)
         tap.withLock { $0 }?.offer(frame)

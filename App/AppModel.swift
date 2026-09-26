@@ -296,6 +296,23 @@ final class AppModel {
         playback = await control.playbackStatus()
     }
 
+    /// Pauses a file source for study mode. Returns whether it was playing (to resume afterwards).
+    func pauseForStudy() async -> Bool {
+        guard let control = playbackControl else { return false }
+        let playing = await control.playbackStatus().isPlaying
+        if playing {
+            await control.pause()
+            playback = await control.playbackStatus()
+        }
+        return playing
+    }
+
+    func resumeAfterStudy() async {
+        guard let control = playbackControl else { return }
+        await control.play()
+        playback = await control.playbackStatus()
+    }
+
     func skip(by seconds: Double) async {
         guard let current = playback else { return }
         await seek(to: current.currentTime + seconds)

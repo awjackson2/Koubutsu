@@ -15,11 +15,13 @@ public struct OCRConfiguration: Sendable, Hashable, Codable {
     /// Observations below this confidence are discarded.
     public var minimumConfidence: Float
     public var maximumCandidates: Int
+    /// Also compute a box per character (study mode selection). Costs one extra query per character.
+    public var characterBoxes: Bool = false
 
     public init(languages: [String] = ["ja-JP"], quality: OCRQuality = .accurate,
                 usesLanguageCorrection: Bool = true, minimumTextHeight: Double = 0,
                 regionOfInterest: NormalizedRect? = nil, minimumConfidence: Float = 0.3,
-                maximumCandidates: Int = 3) {
+                maximumCandidates: Int = 3, characterBoxes: Bool = false) {
         self.languages = languages
         self.quality = quality
         self.usesLanguageCorrection = usesLanguageCorrection
@@ -27,7 +29,11 @@ public struct OCRConfiguration: Sendable, Hashable, Codable {
         self.regionOfInterest = regionOfInterest
         self.minimumConfidence = minimumConfidence
         self.maximumCandidates = maximumCandidates
+        self.characterBoxes = characterBoxes
     }
+
+    /// Study mode: accurate, full frame, per-character boxes.
+    public static let study = OCRConfiguration(maximumCandidates: 1, characterBoxes: true)
 
     public static let japanese = OCRConfiguration()
 }
