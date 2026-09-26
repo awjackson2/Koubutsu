@@ -40,10 +40,22 @@ struct TextBlockGrouperTests {
         #expect(blocks[0].text == "セーブしています...")
     }
 
-    @Test func sideBySideLinesDoNotMerge() {
+    @Test func fragmentsOfOneLineAreJoined() {
+        // CI run 15: small top-right status text split by Vision into four pieces.
         let blocks = grouper.group([
-            line("左", x: 0.1, y: 0.5, w: 0.1, h: 0.06),
-            line("右", x: 0.15, y: 0.505, w: 0.1, h: 0.06),
+            line("います…", x: 0.905, y: 0.055, w: 0.045, h: 0.025),
+            line("セ", x: 0.80, y: 0.056, w: 0.012, h: 0.025),
+            line("て", x: 0.89, y: 0.055, w: 0.011, h: 0.025),
+            line("ーブし", x: 0.815, y: 0.055, w: 0.07, h: 0.025),
+        ])
+        #expect(blocks.map(\.text) == ["セーブしています..."])
+    }
+
+    @Test func separateColumnsOnOneRowStayApart() {
+        // Title menu: 「はい」 and a distant label on the same row are different texts.
+        let blocks = grouper.group([
+            line("はい", x: 0.47, y: 0.5, w: 0.06, h: 0.04),
+            line("HP 100", x: 0.85, y: 0.5, w: 0.1, h: 0.04),
         ])
         #expect(blocks.count == 2)
     }

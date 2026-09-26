@@ -29,7 +29,8 @@ series() { # name, launch args...
   local name=$1; shift
   xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
   xcrun simctl launch "$UDID" "$BUNDLE" "$@" > /dev/null
-  for t in 20 90 150 210 270; do
+  # Warm up (first Vision request loads models), then sample densely across two 24 s clip loops.
+  for t in 20 60 64 68 72 76 80 84 88 92 96 100 104 108; do
     sleep $(( t - ${last:-0} )); last=$t
     xcrun simctl io "$UDID" screenshot "build/screenshots/${name}_t${t}s.png" > /dev/null
     if xcrun simctl spawn "$UDID" launchctl list | grep -q "$BUNDLE"; then state=running; else state=NOT-RUNNING; fi

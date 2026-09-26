@@ -40,11 +40,16 @@ public struct TextBlockGrouper: Sendable {
     public var leftAlignmentRatio: Double = 1.5
     /// Or: horizontal overlap of at least this fraction of the narrower line.
     public var minimumHorizontalOverlap: Double = 0.3
+    /// Fragments of one text line (same row) closer than this many line heights are joined first. Vision
+    /// splits small text over busy backgrounds into pieces (e.g. セ / ーブし / て / います…).
+    public var maximumFragmentGapRatio: Double = 1.2
+    /// Rows count as the same line when their vertical overlap is at least this fraction of the shorter one.
+    public var minimumRowOverlap: Double = 0.5
 
     public init() {}
 
     public func group(_ observations: [RecognizedTextObservation]) -> [TextBlock] {
-        let sorted = observations.sorted {
+        let sorted = mergeLineFragments(observations).sorted {
             $0.boundingBox.minY == $1.boundingBox.minY ? $0.boundingBox.minX < $1.boundingBox.minX
                                                        : $0.boundingBox.minY < $1.boundingBox.minY
         }
@@ -57,6 +62,40 @@ public struct TextBlockGrouper: Sendable {
             }
         }
         return groups.map(TextBlock.init(lines:))
+    }
+
+    /// Joins side-by-side fragments of the same line into one observation (left to right).
+    func mergeLineFragments(_ observations: [RecognizedTextObservation]) -> [RecognizedTextObservation] {
+        var lines: [RecognizedTextObservation] = []
+        for fragment in observations.sorted(by: { $0.boundingBox.minX < $1.boundingBox.minX }) {
+            if let index = lines.firstIndex(where: { continues($0, with: fragment) }) {
+                lines[index] = joined(lines[index], fragment)
+            } else {
+                lines.append(fragment)
+            }
+        }
+        return lines
+    }
+
+    func continues(_ left: RecognizedTextObservation, with right: RecognizedTextObservation) -> Bool {
+        let a = left.boundingBox, b = right.boundingBox
+        let overlap = min(a.maxY, b.maxY) - max(a.minY, b.minY)
+        guard overlap >= minimumRowOverlap * min(a.height, b.height) else { return false }
+        let gap = b.minX - a.maxX
+        let height = max(a.height, b.height)
+        return gap >= -0.5 * height && gap <= maximumFragmentGapRatio * height
+    }
+
+    func joined(_ left: RecognizedTextObservation, _ right: RecognizedTextObservation) -> RecognizedTextObservation {
+        let separator = left.text.last.map(TextNormalizer.isJapanese) == false
+            && right.text.first.map(TextNormalizer.isJapanese) == false ? " " : ""
+        var result = left
+        result.text = left.text + separator + right.text
+        result.boundingBox = left.boundingBox.union(right.boundingBox)
+        result.confidence = min(left.confidence, right.confidence)
+        result.quad = nil
+        result.candidates = []
+        return result
     }
 
     func belongs(_ line: RecognizedTextObservation, below previous: RecognizedTextObservation) -> Bool {
