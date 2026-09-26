@@ -35,16 +35,16 @@ SQLite store, speech, system dictionary, UI) in the app behind protocols.
 ## Technical Plan
 Roadmap checklist:
 ```
-- [ ] 8.1.0 — Freeze & select: study button freezes the frame; accurate OCR with per-character boxes;
+- [x] 8.1.0 — Freeze & select: study button freezes the frame; accurate OCR with per-character boxes;
               tap selects a character, drag selects a region; selection text + translation
-- [ ] 8.2.0 — Dictionary data: JMdict + KANJIDIC2 → SQLite (Tools/build_dictionary.py), bundled,
+- [x] 8.2.0 — Dictionary data: JMdict + KANJIDIC2 → SQLite (Tools/build_dictionary.py), bundled,
               DictionaryStore protocol + SQLite store, attributions screen
-- [ ] 8.3.0 — Lookup engine: kana normalization, de-inflection rules, longest-match scanning (core)
-- [ ] 8.4.0 — Word card: furigana alignment, romaji, senses/tags, conjugation chain, kanji breakdown,
+- [x] 8.3.0 (+8.3.1) — Lookup engine: kana normalization, de-inflection rules, longest-match scanning (core)
+- [x] 8.4.0 — Word card: furigana alignment, romaji, senses/tags, conjugation chain, kanji breakdown,
               sentence + translation, speech, system dictionary
-- [ ] 8.5.0 — Word bank & review: save with context (sentence, crop, source), FSRS scheduler, review
+- [x] 8.5.0 — Word bank & review: save with context (sentence, crop, source), FSRS scheduler, review
               screen, Anki TSV export
-- [ ] 8.6.0 — Reading aids: furigana over kanji on the live image, saved words highlighted, known words skipped
+- [x] 8.6.0 — Reading aids: furigana over kanji on the live image, saved words highlighted, known words skipped
 ```
 Patches are appended per Minor as needed.
 

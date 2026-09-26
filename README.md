@@ -21,8 +21,16 @@ Nothing is injected into the Switch or the game: everything works on the externa
 | UVC capture + hot-plug, UAC audio passthrough | implemented; unverified without capture hardware |
 | Physical iPad / capture hardware measurements | procedure in `docs/device_testing.md` |
 | Fixed video stage; full screen, English/Japanese toggle, hold-to-peek, recent lines, keyboard shortcuts | implemented, CI-built; gestures unverified on device |
+| Study mode: freeze & select, offline JMdict/KANJIDIC2 lookup with conjugation, word card, word bank, FSRS review, Anki export, furigana overlay | implemented, CI-tested; gestures unverified on device |
 
 ## Screenshots
+
+Study mode (Major 8, CI screenshots on 8139770, iPad simulator, synthetic clip): drag over the frozen dialogue to
+list its words; tap 強 to get the word card; furigana over the game's own Japanese.
+
+| Drag selection | Word card | Furigana |
+|---|---|---|
+| ![drag](docs/screenshots/study860_drag.jpg) | ![card](docs/screenshots/study860_card.jpg) | ![furigana](docs/screenshots/study860_furigana.jpg) |
 
 Full screen and the fixed video stage (Phase 7.8.0, CI screenshots on 14d7a2b, iPad simulator, synthetic clip,
 demo translator). The video keeps the same position and size with or without the controls.

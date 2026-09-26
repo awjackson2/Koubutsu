@@ -86,7 +86,10 @@ extension VideoOverlayView {
     /// Furigana above kanji runs and underlines under words being learned, on the original Japanese.
     private func readingAids(mapper: CoordinateMapper) -> some View {
         var marks: [ReadingMark] = []
-        for line in displayed.flatMap(\.stable.lines) {
+        // The latest OCR lines, not the stabilized tracks: readings need no translation, and tracks are kept
+        // on screen for a while after text disappears (which would leave readings floating over nothing).
+        let lines = (ocr?.observations ?? []).filter { TextNormalizer.containsJapaneseText($0.text) }
+        for line in lines {
             let boxes = CharacterLayout.boxes(for: line)
             for annotation in annotations(line.text) ?? [] {
                 guard annotation.range.upperBound <= boxes.count, !annotation.range.isEmpty else { continue }
