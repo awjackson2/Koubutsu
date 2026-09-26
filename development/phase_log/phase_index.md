@@ -7,3 +7,5 @@ Line format:
 
 ## Timeline
 
+- **Phase 1.0.0** (2026-09-26) — [plan](phase_1.0.0_plan.md) — Roadmap for Major 1: from a prerecorded Japanese video to on-screen OCR results.
+- **Phase 1.1.0** (2026-09-26) — [plan](phase_1.1.0_plan.md) · [log](phase_1.1.0_log.md) — The iPad app project, a Linux-testable core library, and automatic builds on Mac and Linux now exist (CI: 2/2 workflows green).
