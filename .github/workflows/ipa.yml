@@ -1,0 +1,26 @@
+name: iPad build (unsigned IPA)
+# Builds a Release device build for iPad with code signing disabled and packages it as Koubutsu.ipa.
+# The IPA must be signed before it installs (sideloading tool with an Apple ID, or zsign with a
+# development certificate). Contains only the app: no footage, no credentials.
+on:
+  push:
+    branches: [main, 'claude/**']
+  workflow_dispatch:
+concurrency:
+  group: ipa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ipa:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: Tools/ci_select_xcode.sh
+      - name: Build unsigned IPA
+        run: Tools/build_unsigned_ipa.sh "${{ github.run_number }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Koubutsu-ipa
+          path: build/ipa/Koubutsu.ipa
+          retention-days: 30

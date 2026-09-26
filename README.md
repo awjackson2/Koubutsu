@@ -69,6 +69,11 @@ line can be held on screen. Videos stay on the iPad; nothing is bundled or uploa
 - Xcode 26.x, iPadOS 26.0+ on a USB-C iPad.
 - For capture: a UVC/UAC capture device (e.g. CABLETIME CC19L or HDMI capture card + Switch dock/adapter).
 
+## Install on an iPad
+
+See [docs/install.md](docs/install.md): CI builds `Koubutsu.ipa`; sign and install it from Linux
+(AltServer-Linux with an Apple ID, or zsign + ideviceinstaller with a developer account).
+
 ## Build & run
 
 Open `Koubutsu.xcodeproj`, select an iPad (simulator or device), Run. The app starts a bundled synthetic
