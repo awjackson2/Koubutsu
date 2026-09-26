@@ -69,4 +69,32 @@ struct TextBlockGrouperTests {
         #expect(block.confidence == 0.4)
         #expect(block.text == "A B")
     }
+
+    @Test func listItemsStaySeparateAndWrappedTailJoins() {
+        let blocks = grouper.group([
+            line("1.電源ボタン：画面ロッ", x: 0.049, y: 0.234, w: 0.631, h: 0.058),
+            line("ク", x: 0.068, y: 0.287, w: 0.022, h: 0.041),
+            line("2.ボリュームノブ：音量調整", x: 0.045, y: 0.325, w: 0.307, h: 0.053),
+            line("7.ディスプレイ", x: 0.035, y: 0.564, w: 0.163, h: 0.053),
+            line("8.3.5mmシングルエンド", x: 0.032, y: 0.612, w: 0.509, h: 0.056),
+        ])
+        #expect(blocks.map(\.text) == ["1.電源ボタン:画面ロック", "2.ボリュームノブ:音量調整", "7.ディスプレイ",
+                                        "8.3.5mmシングルエンド"])
+    }
+
+    @Test func decimalLineContinuesProse() {
+        let blocks = grouper.group([
+            line("この装置の重さは", x: 0.1, y: 0.5),
+            line("1.5キロです", x: 0.1, y: 0.56),
+        ])
+        #expect(blocks.count == 1)
+    }
+
+    @Test func fragmentsOfDifferentHeightAreNotJoined() {
+        let blocks = grouper.group([
+            line("231570820447", x: 0.0, y: 0.331, w: 0.166, h: 0.114),
+            line("3.再生／一時停止ボタン", x: 0.23, y: 0.370, w: 0.579, h: 0.063),
+        ])
+        #expect(blocks.count == 2)
+    }
 }

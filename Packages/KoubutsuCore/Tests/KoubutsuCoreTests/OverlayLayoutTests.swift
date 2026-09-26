@@ -30,21 +30,33 @@ struct OverlayLayoutTests {
         #expect(p[0].lineLimit == lines)
     }
 
-    @Test func textThatCannotFitGrowsDownward() {
-        let box = NormalizedRect(x: 0.47, y: 0.5, width: 0.02, height: 0.02)
+    @Test func narrowBoxWidensIntoFreeSpaceBeforeShrinking() {
+        let box = NormalizedRect(x: 0.1, y: 0.5, width: 0.1, height: 0.05) // 192×54 pt
         let p = layout.place([OverlayItem(id: 1, sourceBox: box, lineCount: 1)], mapper: mapper,
                              textLength: { _ in 60 })
-        #expect(p[0].frame.width == 60)
-        #expect(p[0].fontSize == layout.fontSizeRange.lowerBound)
-        #expect(p[0].frame.height > mapper.viewRect(for: box).height + 8)
+        let nominal = layout.nominalFontSize(sourceHeight: 54, lineCount: 1)
+        #expect(p[0].frame.width > 192 + 8)
+        #expect(p[0].fontSize >= nominal * layout.readableFontFraction)
+        #expect(abs(p[0].frame.height - (54 + 8)) < 1e-9)
     }
 
-    @Test func grownBoxesAreStacked() {
-        let a = OverlayItem(id: "a", sourceBox: NormalizedRect(x: 0.1, y: 0.10, width: 0.03, height: 0.02), lineCount: 1)
-        let b = OverlayItem(id: "b", sourceBox: NormalizedRect(x: 0.1, y: 0.12, width: 0.03, height: 0.02), lineCount: 1)
-        let p = layout.place([b, a], mapper: mapper, textLength: { _ in 80 })
+    @Test func wideningStopsAtTheNextTextOnTheRow() {
+        let a = OverlayItem(id: "a", sourceBox: NormalizedRect(x: 0.1, y: 0.5, width: 0.05, height: 0.03), lineCount: 1)
+        let b = OverlayItem(id: "b", sourceBox: NormalizedRect(x: 0.3, y: 0.5, width: 0.1, height: 0.03), lineCount: 1)
+        let p = layout.place([a, b], mapper: mapper, textLength: { $0 == "a" ? 400 : 5 })
+        #expect(p[0].frame.maxX <= mapper.viewRect(for: b.sourceBox).minX + 1e-9)
+        #expect(p[0].frame.height > mapper.viewRect(for: a.sourceBox).height + 8)
+    }
+
+    @Test func grownBoxNeverCoversTheTextBelow() {
+        let a = OverlayItem(id: "a", sourceBox: NormalizedRect(x: 0.9, y: 0.10, width: 0.03, height: 0.02), lineCount: 1)
+        let b = OverlayItem(id: "b", sourceBox: NormalizedRect(x: 0.9, y: 0.16, width: 0.03, height: 0.02), lineCount: 1)
+        let p = layout.place([b, a], mapper: mapper, textLength: { _ in 300 })
         #expect(p.map(\.id) == ["a", "b"])
-        #expect(!p[0].frame.intersects(p[1].frame))
+        let bText = mapper.viewRect(for: b.sourceBox)
+        #expect(p[0].frame.maxY <= bText.minY + 1e-9)
+        #expect(p[0].frame.height > mapper.viewRect(for: a.sourceBox).height + 8)
+        #expect(p[0].fontSize == layout.fontSizeRange.lowerBound)
     }
 
     @Test func staysInsideVisibleVideo() {
@@ -55,5 +67,13 @@ struct OverlayLayoutTests {
         #expect(p[0].frame.maxX <= bounds.maxX + 1e-9)
         #expect(p[0].frame.maxY <= bounds.maxY + 1e-9)
         #expect(p[0].frame.minY >= bounds.minY)
+    }
+
+    @Test func textScaleEnlargesNominalFont() {
+        let larger = OverlayLayout(textScale: 1.5)
+        #expect(abs(larger.nominalFontSize(sourceHeight: 40, lineCount: 1) - 40 * 0.7 * 1.5) < 1e-9)
+        #expect(larger.fontSizeRange.upperBound == 66)
+        #expect(OverlayLayout(textScale: 1).nominalFontSize(sourceHeight: 40, lineCount: 1)
+                == layout.nominalFontSize(sourceHeight: 40, lineCount: 1))
     }
 }

@@ -60,6 +60,56 @@ public enum TextNormalizer {
             || (0x31F0...0x31FF).contains(v)      // katakana phonetic extensions
     }
 
+    /// True when the text has at least one kana or kanji (punctuation and full-width forms alone do not count).
+    /// Latin/digit OCR junk (e.g. another script misread) has nothing to translate or replace.
+    public static func containsJapaneseText(_ text: String) -> Bool {
+        text.unicodeScalars.contains {
+            (0x3040...0x30FF).contains($0.value) && $0.value != 0x30FB && $0.value != 0x30FC // kana, not ・ ー
+                || (0x3400...0x4DBF).contains($0.value) || (0x4E00...0x9FFF).contains($0.value)
+                || (0x31F0...0x31FF).contains($0.value) || (0xFF66...0xFF9D).contains($0.value)
+        }
+    }
+
+    /// A list-item marker at the start of a line.
+    public enum ListMarker: Sendable, Hashable {
+        /// `1.` `2)` `(3)` `④`. `strict` is false when the number runs into a digit (`8.3.5mm`), which could
+        /// also be a decimal; callers accept it only when it continues a sequence.
+        case numbered(Int, strict: Bool)
+        case bullet
+    }
+
+    public static func listMarker(_ text: String) -> ListMarker? {
+        // Circled numbers fold to plain digits under compatibility mapping, so check them on the raw text.
+        let raw = text.drop { $0.isWhitespace }
+        if let scalar = raw.first?.unicodeScalars.first, (0x2460...0x2473).contains(scalar.value), raw.count > 1 {
+            return .numbered(Int(scalar.value - 0x2460) + 1, strict: true) // ① … ⑳
+        }
+        let chars = Array(display(text))
+        guard let first = chars.first else { return nil }
+        if "・●■◆※-".contains(first) {
+            // 「・・・」 is an ellipsis, not a bullet.
+            guard chars.count > 1, !"・.…".contains(chars[1]) else { return nil }
+            return .bullet
+        }
+        var index = 0
+        let parenthesized = first == "(" || first == "（"
+        if parenthesized { index = 1 }
+        var digits = ""
+        while index < chars.count, digits.count < 3, let d = chars[index].wholeNumberValue, chars[index].isASCII {
+            digits.append(String(d))
+            index += 1
+        }
+        guard !digits.isEmpty, digits.count <= 2, let number = Int(digits), index < chars.count else { return nil }
+        let terminator = chars[index]
+        if parenthesized {
+            guard terminator == ")" || terminator == "）", index + 1 < chars.count else { return nil }
+            return .numbered(number, strict: true)
+        }
+        guard ".)．、".contains(terminator), index + 1 < chars.count else { return nil }
+        let next = chars[index + 1]
+        return .numbered(number, strict: next.wholeNumberValue == nil)
+    }
+
     /// Levenshtein edit distance over grapheme clusters.
     public static func editDistance(_ a: String, _ b: String) -> Int {
         let x = Array(a), y = Array(b)

@@ -20,17 +20,25 @@ Nothing is injected into the Switch or the game: everything works on the externa
 | Video mode (imported file: play/pause/seek/loop; same pipeline as capture) | implemented, CI-tested on real footage |
 | UVC capture + hot-plug, UAC audio passthrough | implemented; unverified without capture hardware |
 | Physical iPad / capture hardware measurements | procedure in `docs/device_testing.md` |
+| Fixed video stage; full screen, English/Japanese toggle, hold-to-peek, recent lines, keyboard shortcuts | implemented, CI-built; gestures unverified on device |
 
 ## Screenshots
 
-Replace-in-place on real footage (Persona 3 Reload, Japanese; CI footage run 9 on commit d5e9a01, iPad
-simulator). The simulator has no translation model, so the English is a labelled `[EN] …` placeholder of
+Full screen and the fixed video stage (Phase 7.8.0, CI screenshots on 14d7a2b, iPad simulator, synthetic clip,
+demo translator). The video keeps the same position and size with or without the controls.
+
+| Full screen | Controls shown |
+|---|---|
+| ![full screen](docs/screenshots/qol780_fullscreen.jpg) | ![controls](docs/screenshots/qol780_overlay_controls.jpg) |
+
+Replace-in-place on real footage (Persona 3 Reload, Japanese; CI footage run 10 on commit ecd62ee, Phase 7.6.1,
+iPad simulator). The simulator has no translation model, so the English is a labelled `[EN] …` placeholder of
 realistic length: these frames check where and how the English replaces the Japanese, not translation
 quality. The footage itself is not in the repository.
 
 | Dialogue | Classroom (board, dialogue) | Dialogue, two lines | Dialogue, split lines |
 |---|---|---|---|
-| ![12s](docs/screenshots/p3r76_replace_12s.jpg) | ![106s](docs/screenshots/p3r76_replace_106s.jpg) | ![274s](docs/screenshots/p3r76_replace_274s.jpg) | ![314s](docs/screenshots/p3r76_replace_314s.jpg) |
+| ![12s](docs/screenshots/p3r761_replace_12s.jpg) | ![106s](docs/screenshots/p3r761_replace_106s.jpg) | ![274s](docs/screenshots/p3r761_replace_274s.jpg) | ![314s](docs/screenshots/p3r761_replace_314s.jpg) |
 
 Synthetic clip:
 
@@ -68,6 +76,11 @@ line can be held on screen. Videos stay on the iPad; nothing is bundled or uploa
 
 - Xcode 26.x, iPadOS 26.0+ on a USB-C iPad.
 - For capture: a UVC/UAC capture device (e.g. CABLETIME CC19L or HDMI capture card + Switch dock/adapter).
+
+## Install on an iPad
+
+See [docs/install.md](docs/install.md): CI builds `Koubutsu.ipa`; sign and install it from Linux
+(AltServer-Linux with an Apple ID, or zsign + ideviceinstaller with a developer account).
 
 ## Build & run
 

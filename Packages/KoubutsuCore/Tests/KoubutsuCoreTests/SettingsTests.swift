@@ -9,6 +9,16 @@ struct SettingsTests {
         #expect(s.displayMode == .overlay)
         #expect(s.ocrConfiguration.languages == ["ja-JP"])
         #expect(s.ocrConfiguration.regionOfInterest == nil)
+        #expect(!s.showDebugStatistics && !s.showRecognizedText)
+        #expect(s.keepScreenAwake)
+        #expect(s.overlayTextScale == 1)
+    }
+
+    @Test func clampsTextScale() throws {
+        let big = try JSONDecoder().decode(AppSettings.self, from: Data(#"{"overlayTextScale": 9}"#.utf8))
+        #expect(big.overlayTextScale == 1.5)
+        let small = try JSONDecoder().decode(AppSettings.self, from: Data(#"{"overlayTextScale": 0.1}"#.utf8))
+        #expect(small.overlayTextScale == 0.8)
     }
 
     @Test func roundTrip() throws {

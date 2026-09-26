@@ -1,6 +1,6 @@
 # Architecture
 
-Last synced: Phase 7.6.0 (2026-09-26)
+Last synced: Phase 7.8.0 (2026-09-26)
 
 ## Layers
 
@@ -64,6 +64,33 @@ Invariants:
 - At most one frame waits for OCR and one is being recognized; everything else is dropped and counted.
 - `FrameTiming` travels with OCR results, stable text and translations: capture→OCR, capture→translation and
   capture→shown latencies are measured, not estimated.
+
+## Text stability rules
+
+- Only blocks containing kana or kanji are tracked; one-glyph blocks need confidence ≥ 0.5.
+- Grouping: a list-item line (`1.`, `(2)`, `③`, `・`) starts its own block; a ≤2-character wrapped tail joins
+  the line above at down to half its height; same-row fragments must have similar heights.
+- Text in free space and growth of shown text (typewriter) are emitted on the first reading. Different text
+  on a shown track, or a new block covering ≥50% of its area with a shown block, needs two readings.
+- A track is removed after 0.6 s and at least two consecutive missed OCR results.
+
+## Replacement box layout
+
+`OverlayLayout.place`: box = Japanese block + 4 pt padding, font up to 70% of the Japanese line height. English
+that would need less than 60% of that font widens the box rightward to the next Japanese on the same rows (or the
+video edge); then the font goes down to 9 pt; then the box grows downward to the next Japanese below. Boxes never
+cover other blocks' text.
+
+## Screen layout
+
+The video stage (`VideoStageLayout`) is a full-width, top-aligned 16:9 rect that depends only on the window size.
+Transport bar, panels and control bar are a bottom-anchored overlay with fixed-height panels; showing or hiding
+them never resizes or moves the video or its replacement boxes.
+
+Full screen (`RootView.isFullScreen`) removes the chrome overlay and the status bar; a tap on the stage reveals
+the chrome for 4 s. Holding on the stage hides the replacement overlay (peek at the original). Keyboard shortcuts
+are invisible buttons kept in the hierarchy so they work with the chrome hidden. The idle timer is disabled
+while a source runs (`keepScreenAwake`).
 
 ## Coordinate convention
 

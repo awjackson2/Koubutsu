@@ -9,8 +9,10 @@ struct VideoOverlayView: View {
     let displayed: [DisplayedText]
     let showBoxes: Bool
     let showTranslations: Bool
+    /// User text-size setting for the English in replacement boxes.
+    var textScale: Double = 1
 
-    private let layout = OverlayLayout()
+    private var layout: OverlayLayout { OverlayLayout(textScale: textScale) }
 
     var body: some View {
         GeometryReader { geometry in

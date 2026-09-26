@@ -32,7 +32,13 @@ public struct AppSettings: Sendable, Hashable, Codable {
     public var showOriginalText: Bool = true
     public var showTranslation: Bool = true
     public var showOCRBoxes: Bool = false
-    public var showDebugStatistics: Bool = true
+    public var showDebugStatistics: Bool = false
+    /// The list of recognized Japanese lines under the video.
+    public var showRecognizedText: Bool = false
+    /// Keep the screen on while a source is running.
+    public var keepScreenAwake: Bool = true
+    /// Size of the English in replacement boxes, relative to the default (clamped to `overlayTextScaleRange`).
+    public var overlayTextScale: Double = 1.0
     public var regionOfInterestMode: RegionOfInterestMode = .fullFrame
     public var customRegionOfInterest: NormalizedRect = .init(x: 0, y: 0.6, width: 1, height: 0.4)
     public var loopTestVideo: Bool = true
@@ -44,6 +50,8 @@ public struct AppSettings: Sendable, Hashable, Codable {
     public var captureAudioVolume: Double = 1.0
 
     public init() {}
+
+    public static let overlayTextScaleRange: ClosedRange<Double> = 0.8...1.5
 
     /// The dialogue region used by `.dialogue`: bottom 40% of the frame, where most games draw text boxes.
     public static let dialogueRegion = NormalizedRect(x: 0, y: 0.6, width: 1, height: 0.4)
@@ -75,6 +83,10 @@ public struct AppSettings: Sendable, Hashable, Codable {
         s.showTranslation = try c.decodeIfPresent(Bool.self, forKey: .showTranslation) ?? s.showTranslation
         s.showOCRBoxes = try c.decodeIfPresent(Bool.self, forKey: .showOCRBoxes) ?? s.showOCRBoxes
         s.showDebugStatistics = try c.decodeIfPresent(Bool.self, forKey: .showDebugStatistics) ?? s.showDebugStatistics
+        s.showRecognizedText = try c.decodeIfPresent(Bool.self, forKey: .showRecognizedText) ?? s.showRecognizedText
+        s.keepScreenAwake = try c.decodeIfPresent(Bool.self, forKey: .keepScreenAwake) ?? s.keepScreenAwake
+        let textScale = try c.decodeIfPresent(Double.self, forKey: .overlayTextScale) ?? s.overlayTextScale
+        s.overlayTextScale = min(max(textScale, Self.overlayTextScaleRange.lowerBound), Self.overlayTextScaleRange.upperBound)
         s.regionOfInterestMode = (try? c.decodeIfPresent(RegionOfInterestMode.self, forKey: .regionOfInterestMode)) ?? s.regionOfInterestMode
         s.customRegionOfInterest = try c.decodeIfPresent(NormalizedRect.self, forKey: .customRegionOfInterest) ?? s.customRegionOfInterest
         s.loopTestVideo = try c.decodeIfPresent(Bool.self, forKey: .loopTestVideo) ?? s.loopTestVideo

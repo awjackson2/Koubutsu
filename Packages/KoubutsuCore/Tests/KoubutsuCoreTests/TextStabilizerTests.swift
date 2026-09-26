@@ -131,4 +131,60 @@ struct TextStabilizerTests {
         let events = stabilized(s.process(result(at: 0.2, [("この先には強い敵がいる。", l1), ("鍵が必要です", l2)])))
         #expect(events.map(\.text) == ["この先には強い敵がいる。鍵が必要です"])
     }
+
+    @Test func blocksWithoutJapaneseAreIgnored() {
+        var s = TextStabilizer()
+        _ = s.process(result(at: 0.0, [("231570820447", dialogueBox), ("TALK", otherBox)]))
+        #expect(s.tracks.isEmpty)
+    }
+
+    @Test func lowConfidenceSingleGlyphIgnored() {
+        var s = TextStabilizer()
+        _ = s.process(result(at: 0.0, [("ク", dialogueBox)], confidence: 0.3))
+        #expect(s.tracks.isEmpty)
+        #expect(stabilized(s.process(result(at: 0.1, [("ク", dialogueBox)], confidence: 0.5))).count == 1)
+    }
+
+    @Test func shownTextIsReplacedOnlyAfterTwoReadings() {
+        var s = TextStabilizer()
+        let first = stabilized(s.process(result(at: 0.0, [("鍵が必要です", dialogueBox)])))
+        #expect(first.count == 1)
+        // One differing reading: nothing replaces the shown text yet.
+        #expect(stabilized(s.process(result(at: 0.1, [("扉が開いた", dialogueBox)]))).isEmpty)
+        let second = stabilized(s.process(result(at: 0.2, [("扉が開いた", dialogueBox)])))
+        #expect(second.map(\.text) == ["扉が開いた"])
+        #expect(second.first?.trackID == first.first?.trackID)
+    }
+
+    @Test func alternatingMisreadNeverReplacesShownText() {
+        var s = TextStabilizer()
+        _ = s.process(result(at: 0.0, [("鍵が必要です", dialogueBox)]))
+        for i in 1...10 {
+            let text = i.isMultiple(of: 2) ? "鍵が必要です" : "扉が開いた"
+            #expect(stabilized(s.process(result(at: Double(i) * 0.1, [(text, dialogueBox)]))).isEmpty)
+        }
+    }
+
+    @Test func newBlockOverShownBlockNeedsTwoReadings() {
+        var s = TextStabilizer()
+        let wide = NormalizedRect(x: 0.1, y: 0.2, width: 0.6, height: 0.3)
+        let part = NormalizedRect(x: 0.1, y: 0.2, width: 0.6, height: 0.06)
+        _ = s.process(result(at: 0.0, [("一行目二行目三行目", wide)]))
+        // The shown block splits: its first line alone appears over it.
+        let events = stabilized(s.process(result(at: 0.1, [("一行目", part), ("一行目二行目三行目", wide)])))
+        #expect(events.isEmpty)
+        #expect(stabilized(s.process(result(at: 0.2, [("一行目", part), ("一行目二行目三行目", wide)]))).map(\.text)
+                == ["一行目"])
+    }
+
+    @Test func oneMissedReadingDoesNotRemove() {
+        var s = TextStabilizer()
+        _ = s.process(result(at: 0.0, [("鍵が必要です", dialogueBox)]))
+        // Slow OCR (2 results/s): one miss is past the time window but is not enough on its own.
+        #expect(s.process(result(at: 1.0, [])).isEmpty)
+        #expect(s.process(result(at: 1.5, [("鍵が必要です", dialogueBox)])).isEmpty)
+        _ = s.process(result(at: 2.5, []))
+        let events = s.process(result(at: 3.5, []))
+        if case .removed = events.first {} else { Issue.record("expected removal after two misses") }
+    }
 }

@@ -46,6 +46,10 @@ public struct TrackedBlock: Sendable, Hashable, Identifiable {
     public var lastSeen: HostTime
     public var observationsOfCurrentText: Int
     public var stableKey: String?
+    /// Last text emitted for this track (still shown downstream while a replacement is being confirmed).
+    public var shownKey: String?
+    /// Consecutive OCR results this track was not found in.
+    public var missedResults: Int = 0
 
     public var isStable: Bool { stableKey == block.key }
 }
@@ -62,12 +66,25 @@ public struct StabilizerConfiguration: Sendable, Hashable {
     public var matchSimilarity: Double = 0.5
     /// Texts at least this similar (and not growth) are treated as OCR noise of the same text.
     public var noiseSimilarity: Double = 0.85
-    /// A track unseen for this long is removed.
+    /// Readings needed before text replaces something already shown: different (non-growth) text on a shown
+    /// track, or a new block over a shown block. One misread or regrouped OCR result then cannot redraw the screen.
+    public var replacementObservations: Int = 2
+    /// A new block counts as over a shown block when this fraction of its area is covered by it.
+    public var coverFraction: Double = 0.5
+    /// A track unseen for this long is removed…
     public var removeAfter: Double = 0.6
+    /// …and only once it has been missing from this many consecutive OCR results (at a low OCR rate a single
+    /// missed reading must not blink the box).
+    public var minimumMissedResults: Int = 2
     /// Blocks below this confidence are ignored.
     public var minimumConfidence: Float = 0.3
     /// Blocks with fewer comparison-key characters are ignored (stray glyphs).
     public var minimumKeyLength: Int = 1
+    /// One-character blocks need at least this confidence (stray glyphs are read at low confidence).
+    public var shortTextMinimumConfidence: Float = 0.5
+    /// Blocks with no kana or kanji are ignored: nothing to translate, and another script misread as
+    /// Latin/digits would otherwise be drawn as a box.
+    public var requiresJapanese: Bool = true
 
     public init() {}
 }
@@ -98,6 +115,8 @@ public struct TextStabilizer: Sendable {
         let now = result.frame.hostTime
         let blocks = grouper.group(result.observations).filter {
             $0.confidence >= configuration.minimumConfidence && $0.key.count >= configuration.minimumKeyLength
+                && ($0.key.count > 1 || $0.confidence >= configuration.shortTextMinimumConfidence)
+                && (!configuration.requiresJapanese || TextNormalizer.containsJapaneseText($0.key))
         }
         var events: [TextEvent] = []
         var unmatchedTracks = Set(tracks.indices)
@@ -106,6 +125,7 @@ public struct TextStabilizer: Sendable {
             if let index = bestTrack(for: block, among: unmatchedTracks) {
                 unmatchedTracks.remove(index)
                 var track = tracks[index]
+                track.missedResults = 0
                 let wasStable = track.isStable
                 if Self.update(&track, with: block, frame: result.frame, configuration: configuration) {
                     duplicateDetections += 1
@@ -118,10 +138,12 @@ public struct TextStabilizer: Sendable {
             }
         }
 
+        for index in unmatchedTracks where tracks[index].lastSeen != now { tracks[index].missedResults += 1 }
+
         // Remove tracks that have been gone long enough.
         var kept: [TrackedBlock] = []
         for track in tracks {
-            if now - track.lastSeen > configuration.removeAfter {
+            if now - track.lastSeen > configuration.removeAfter && track.missedResults >= configuration.minimumMissedResults {
                 events.append(.removed(trackID: track.id))
             } else {
                 kept.append(track)
@@ -130,18 +152,36 @@ public struct TextStabilizer: Sendable {
         tracks = kept
 
         // Emit newly stable text.
+        let shownBefore = Set(tracks.filter { $0.shownKey != nil }.map(\.id))
         for index in tracks.indices where tracks[index].lastSeen == now && !tracks[index].isStable {
             let track = tracks[index]
             let age = now - track.firstSeenCurrentText.hostTime
             guard age >= configuration.minimumStableDuration,
-                  track.observationsOfCurrentText >= configuration.minimumObservations else { continue }
+                  track.observationsOfCurrentText >= requiredObservations(for: track, shownBefore: shownBefore)
+            else { continue }
             tracks[index].stableKey = track.block.key
+            tracks[index].shownKey = track.block.key
             events.append(.stabilized(StableText(
                 trackID: track.id, text: track.block.text, key: track.block.key,
                 boundingBox: track.block.boundingBox, confidence: track.block.confidence,
                 lines: track.block.lines, firstSeenFrame: track.firstSeenCurrentText, stabilizedFrame: result.frame)))
         }
         return events
+    }
+
+    /// Instant for text in free space and for growth of the shown text (typewriter); confirmed otherwise.
+    /// "Over" means covering at least `coverFraction` of the new block; neighbouring lines touch but do not count.
+    private func requiredObservations(for track: TrackedBlock, shownBefore: Set<UUID>) -> Int {
+        let confirmed = max(configuration.minimumObservations, configuration.replacementObservations)
+        if let shown = track.shownKey {
+            return TextNormalizer.isGrowth(from: shown, to: track.block.key) ? configuration.minimumObservations : confirmed
+        }
+        let box = track.block.boundingBox
+        let coversShownText = tracks.contains {
+            $0.id != track.id && shownBefore.contains($0.id)
+                && ($0.block.boundingBox.intersection(box)?.area ?? 0) >= configuration.coverFraction * box.area
+        }
+        return coversShownText ? confirmed : configuration.minimumObservations
     }
 
     /// Larger blocks claim tracks first so a big dialogue box is not stolen by a fragment.
