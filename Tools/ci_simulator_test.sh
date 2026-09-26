@@ -23,11 +23,28 @@ print("Selected", best[0], file=sys.stderr)
 echo "Simulator: ${UDID}"
 ACTION=${1:-test}
 STATUS=0
+LIMIT=${XCODEBUILD_TIME_LIMIT:-720}
 xcodebuild -project Koubutsu.xcodeproj -scheme Koubutsu \
   -destination "id=${UDID}" \
   -resultBundlePath "build/Koubutsu-${ACTION}.xcresult" \
   CODE_SIGNING_ALLOWED=NO \
-  "${ACTION}" > build/xcodebuild.log 2>&1 || STATUS=$?
-grep -E "error:|warning: |\*\* |Test (Case|Suite|run)|✔|✘|passed after|failed after" build/xcodebuild.log || true
+  "${ACTION}" > build/xcodebuild.log 2>&1 &
+PID=$!
+START=$(date +%s)
+while kill -0 "$PID" 2>/dev/null; do
+  sleep 10
+  if (( $(date +%s) - START > LIMIT )); then
+    echo "::error::xcodebuild exceeded ${LIMIT}s; last log lines:"
+    tail -150 build/xcodebuild.log
+    echo "--- simulator app log (last 2 min) ---"
+    xcrun simctl spawn "${UDID}" log show --last 2m --style compact \
+      --predicate 'process == "Koubutsu" OR subsystem == "com.awjackson2.Koubutsu"' 2>/dev/null | tail -80 || true
+    kill "$PID" 2>/dev/null; sleep 5; kill -9 "$PID" 2>/dev/null
+    STATUS=124
+    break
+  fi
+done
+if [[ $STATUS -eq 0 ]]; then wait "$PID" || STATUS=$?; fi
+grep -E "error:|warning: |\*\* |Test (Case|Suite|run)|✔|✘|passed after|failed after|recorded an issue" build/xcodebuild.log | grep -v "^\s*$" | tail -250 || true
 tail -5 build/xcodebuild.log
 exit "${STATUS}"
