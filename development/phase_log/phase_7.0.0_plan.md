@@ -38,8 +38,8 @@ replace it with English in real time; Video mode behaves exactly like game mode)
 - [x] 7.3.1 — whole-video analysis, footage report     (superseded; removed in 7.5.0)
 - [x] 7.4.0–7.4.2 — speaker labels, HUD suppression   (superseded; removed in 7.5.0)
 - [x] 7.4.1 — paused frame keeps being read (kept)
-- [ ] 7.5.0 — reframe: remove analysis/transcript/speaker/HUD layers
-- [ ] 7.6.0 — replace-in-place overlay as default + instant updates
+- [x] 7.5.0 — reframe: remove analysis/transcript/speaker/HUD layers
+- [x] 7.6.0 — replace-in-place overlay as default + instant updates
 ```
 
 ## Test Plan

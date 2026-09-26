@@ -43,3 +43,13 @@ Line format:
 - **Phase 6.1.0** (2026-09-26) — [plan](phase_6.1.0_plan.md) · [log](phase_6.1.0_log.md) — Game audio from the capture device plays through the iPad (untested on hardware).
 - **Phase 4.2.1** (2026-09-26) — [log](phase_4.2.1_log.md) — Benchmark results are printed on every CI run (first result: 92% exact, 95% characters).
 - **Phase 4.2.2** (2026-09-26) — [log](phase_4.2.2_log.md) — Benchmark scores what the app actually translates: 99% of characters correct.
+- **Phase 7.0.0** (2026-09-26) — [plan](phase_7.0.0_plan.md) — Roadmap for Video mode (rewritten in 7.5.0).
+- **Phase 7.1.0** (2026-09-26) — [plan](phase_7.1.0_plan.md) · [log](phase_7.1.0_log.md) — File sources can pause, seek, skip and loop.
+- **Phase 7.2.0** (2026-09-26) — [plan](phase_7.2.0_plan.md) · [log](phase_7.2.0_log.md) — Video mode transport bar and import.
+- **Phase 7.3.0** (2026-09-26) — [plan](phase_7.3.0_plan.md) · [log](phase_7.3.0_log.md) — Transcript export (removed in 7.5.0).
+- **Phase 7.3.1** (2026-09-26) — [log](phase_7.3.1_log.md) — Whole-video analysis and CI footage workflow (analysis removed in 7.5.0).
+- **Phase 7.4.0** (2026-09-26) — [plan](phase_7.4.0_plan.md) · [log](phase_7.4.0_log.md) — Speaker labels and HUD suppression (reverted in 7.5.0).
+- **Phase 7.4.1** (2026-09-26) — [log](phase_7.4.1_log.md) — A paused video keeps being read; footage screenshots in CI.
+- **Phase 7.4.2** (2026-09-26) — [log](phase_7.4.2_log.md) — HUD rule refinements (reverted in 7.5.0).
+- **Phase 7.5.0** (2026-09-26) — [plan](phase_7.5.0_plan.md) · [log](phase_7.5.0_log.md) — Video mode is game mode on a file; analysis layers removed.
+- **Phase 7.6.0** (2026-09-26) — [plan](phase_7.6.0_plan.md) · [log](phase_7.6.0_log.md) — Japanese is replaced by English in place, instantly.
