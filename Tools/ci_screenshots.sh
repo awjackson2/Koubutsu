@@ -38,8 +38,8 @@ series() { # name, launch args...
   last=0
 }
 
-series panel_debug --demo-translator --display-mode=panel --show-boxes --show-debug
-series overlay --demo-translator --display-mode=panelAndOverlay --hide-debug
+series panel_debug --reset-settings --demo-translator --display-mode=panel --show-boxes --show-debug
+series overlay --reset-settings --demo-translator --display-mode=panelAndOverlay --hide-debug
 xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
 ls -la build/screenshots
 echo "--- crash reports ---"

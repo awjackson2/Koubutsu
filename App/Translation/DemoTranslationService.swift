@@ -44,6 +44,7 @@ struct DemoTranslationService: TranslationService {
 /// Launch arguments for automation (CI screenshots, UI checks).
 struct LaunchOptions {
     var demoTranslator = false
+    var resetSettings = false
     var displayMode: AppSettings.DisplayMode?
     var showBoxes: Bool?
     var showDebug: Bool?
@@ -54,6 +55,7 @@ struct LaunchOptions {
         for arg in arguments {
             switch arg {
             case "--demo-translator": demoTranslator = true
+            case "--reset-settings": resetSettings = true
             case "--show-boxes": showBoxes = true
             case "--hide-debug": showDebug = false
             case "--show-debug": showDebug = true
@@ -66,6 +68,7 @@ struct LaunchOptions {
     }
 
     func apply(to settings: inout AppSettings) {
+        if resetSettings { settings = AppSettings() }
         if let displayMode { settings.displayMode = displayMode }
         if let showBoxes { settings.showOCRBoxes = showBoxes }
         if let showDebug { settings.showDebugStatistics = showDebug }

@@ -27,7 +27,7 @@ final class TestVideoSource: VideoSource, @unchecked Sendable {
 
     // pullQueue state.
     private var output: AVPlayerItemVideoOutput?
-    private var timer: DispatchSourceTimer?
+    private var timer: PullThread?
     private var factory = VideoFrameFactory()
     private var sequence: UInt64 = 0
     private var sessionID: UInt64 = 0
@@ -159,12 +159,12 @@ final class TestVideoSource: VideoSource, @unchecked Sendable {
 
     private func startTimer(frameRate: Double) {
         // Poll at twice the source rate (max 240 Hz) so a new frame waits at most half a frame interval.
+        // The thread serializes with start/stop through pullQueue (sync runs on the calling thread).
         let interval = 1.0 / min(max(frameRate * 2, 60), 240)
-        let timer = DispatchSource.makeTimerSource(flags: .strict, queue: pullQueue)
-        timer.schedule(deadline: .now(), repeating: interval, leeway: .microseconds(500))
-        timer.setEventHandler { [weak self] in self?.pull() }
-        self.timer = timer
-        timer.resume()
+        timer = PullThread(interval: interval, name: "koubutsu.video.test.pull") { [weak self] in
+            guard let self else { return }
+            self.pullQueue.sync { self.pull() }
+        }
     }
 
     private func pull() {

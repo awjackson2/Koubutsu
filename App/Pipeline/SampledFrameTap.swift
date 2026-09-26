@@ -25,8 +25,9 @@ final class SampledFrameTap: Sendable {
         let sample = sampler.withLock { $0.shouldSample(at: frame.timing.hostTime) }
         guard sample else { return }
         metrics?.frameSampled(at: frame.timing.hostTime)
-        if mailbox.offer(frame) != nil {
+        if let displaced = mailbox.offer(frame) {
             metrics?.ocrFrameDropped()
+            FrameReleaser.release(displaced)
         }
     }
 
