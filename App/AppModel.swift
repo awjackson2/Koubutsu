@@ -1,6 +1,7 @@
 import AVFoundation
 import KoubutsuCore
 import Observation
+import os
 import SwiftUI
 
 /// Composition root and lifecycle owner. Holds the pipeline, the active source, and UI-facing state.
@@ -10,21 +11,23 @@ import SwiftUI
 final class AppModel {
     enum SourceSelection: Hashable {
         case media(MediaItem)
-        case uvc
+        /// A specific capture device, or nil for the first available one.
+        case uvc(CaptureDeviceInfo?)
 
         var label: String {
             switch self {
             case .media(let item): item.name
-            case .uvc: "USB capture"
+            case .uvc(let device): device?.name ?? "USB capture"
             }
+        }
+
+        var isCapture: Bool {
+            if case .uvc = self { true } else { false }
         }
     }
 
     var settings = AppSettings() {
-        didSet {
-            processingTap.setRate(settings.ocrRate.rawValue)
-            ocrWorker.setConfiguration(settings.ocrConfiguration)
-        }
+        didSet { applySettings() }
     }
     private(set) var mediaItems: [MediaItem] = []
     private(set) var selection: SourceSelection?
@@ -43,27 +46,50 @@ final class AppModel {
     /// Sampled, backpressured frames for OCR. Consumed from Phase 1.5.0.
     let processingTap: SampledFrameTap
     let ocrService = VisionOCRService()
+    let translation: TranslationController
+    let performance = PerformanceMonitor()
+    private(set) var benchmarkReport: String?
+    private(set) var isBenchmarking = false
+    let captureDevices = CaptureDeviceMonitor()
+    let captureAudio = CaptureAudioService()
     private let ocrWorker: OCRWorker<VisionOCRService>
 
     private var source: (any VideoSource<VideoFrame>)?
     private var metricsTask: Task<Void, Never>?
     private var wasRunningBeforeBackground = false
+    private let settingsStore = SettingsStore()
 
     init() {
         renderer = SampleBufferRenderer()
         pipelineMetrics = PipelineMetrics(clock: clock)
         pipeline = FramePipeline(renderer: renderer, metrics: pipelineMetrics, clock: clock)
-        let initialSettings = AppSettings()
+        let initialSettings = settingsStore.load()
         processingTap = SampledFrameTap(rate: initialSettings.ocrRate.rawValue, metrics: pipelineMetrics)
         pipeline.setProcessingTap(processingTap)
         ocrWorker = OCRWorker(service: ocrService, tap: processingTap, metrics: pipelineMetrics, clock: clock,
                               configuration: initialSettings.ocrConfiguration)
+        let appleTranslation = AppleTranslationService()
+        translation = TranslationController(service: appleTranslation, metrics: pipelineMetrics, clock: clock,
+                                            resetService: { await appleTranslation.reset() })
+        settings = initialSettings
+        applySettings()
         refreshMedia()
-        selection = MediaLibrary.defaultItem.map { .media($0) }
+        if settings.autoSwitchToCapture, let device = captureDevices.devices.first {
+            selection = .uvc(device)
+        } else {
+            selection = MediaLibrary.defaultItem.map { .media($0) }
+        }
+        captureDevices.onChange = { [weak self] change in
+            Task { await self?.captureDeviceChanged(change) }
+        }
         ocrWorker.start(
-            onResult: { [weak self] result in self?.latestOCR = result },
+            onResult: { [weak self] result in
+                self?.latestOCR = result
+                self?.translation.process(result)
+            },
             onError: { [weak self] error in self?.ocrStatus = error.description })
         Task { await checkOCRSupport() }
+        Task { await translation.refreshAvailability() }
     }
 
     private func checkOCRSupport() async {
@@ -74,6 +100,18 @@ final class AppModel {
             ocrStatus = OCRError.languageUnsupported(configuration.languages.joined(separator: ",")).description
             ocrWorker.setEnabled(false)
         }
+    }
+
+    // MARK: - Settings
+
+    private func applySettings() {
+        processingTap.setRate(settings.ocrRate.rawValue)
+        ocrWorker.setConfiguration(settings.ocrConfiguration)
+        captureAudio.volume = Float(settings.captureAudioVolume)
+        translation.quality = settings.translationMode == .higherQuality ? .highFidelity : .lowLatency
+        translation.sourceLanguage = settings.sourceLanguage
+        translation.targetLanguage = settings.targetLanguage
+        settingsStore.save(settings)
     }
 
     // MARK: - Sources
@@ -97,9 +135,9 @@ final class AppModel {
         let newSource: any VideoSource<VideoFrame>
         switch selection {
         case .media(let item): newSource = TestVideoSource(url: item.url, loops: settings.loopTestVideo)
-        case .uvc: newSource = UVCVideoSource()
+        case .uvc(let device): newSource = UVCVideoSource(deviceID: device?.id)
         }
-        configureAudioSession()
+        configureAudio(for: selection)
         newSource.setEventHandler { [weak self] event in
             Task { @MainActor in self?.apply(event) }
         }
@@ -129,7 +167,9 @@ final class AppModel {
         await source.stop()
         source.setEventHandler(nil)
         renderer.clear()
+        captureAudio.stop()
         latestOCR = nil
+        translation.reset()
         metricsTask?.cancel()
         metricsTask = nil
         sourceState = .stopped
@@ -173,10 +213,56 @@ final class AppModel {
         }
     }
 
-    private func configureAudioSession() {
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, mode: .moviePlayback)
-        try? session.setActive(true)
+    /// Test video: the player plays the file's audio. Capture: route the device's USB audio to the output.
+    private func configureAudio(for selection: SourceSelection) {
+        if selection.isCapture {
+            guard settings.playCaptureAudio else { return }
+            captureAudio.volume = Float(settings.captureAudioVolume)
+            captureAudio.start()
+        } else {
+            let session = AVAudioSession.sharedInstance()
+            try? session.setCategory(.playback, mode: .moviePlayback)
+            try? session.setActive(true)
+        }
+    }
+
+    /// Hot-plug: switch to a newly connected capture device (if enabled); restart after reconnection.
+    private func captureDeviceChanged(_ change: CaptureDeviceMonitor.Change) async {
+        switch change {
+        case .connected(let device):
+            let usingCapture = selection?.isCapture ?? false
+            if usingCapture || settings.autoSwitchToCapture {
+                await select(.uvc(device))
+            }
+        case .disconnected(let device):
+            guard case .uvc(let selected) = selection, selected == nil || selected?.id == device.id else { return }
+            sourceState = .failed(.deviceDisconnected(device.name))
+            errorMessage = VideoSourceError.deviceDisconnected(device.name).description
+                + " Reconnect it to continue."
+        }
+    }
+
+    // MARK: - Benchmark
+
+    /// Runs the OCR benchmark over the bundled clip (on device: real ANE/GPU numbers).
+    func runBenchmark() async {
+        guard !isBenchmarking, let clip = MediaLibrary.defaultItem?.url,
+              let manifest = try? ClipManifest.load(named: MediaLibrary.defaultClipName) else { return }
+        isBenchmarking = true
+        benchmarkReport = "Running benchmark…"
+        let configuration = settings.ocrConfiguration
+        let report: String
+        do {
+            var runner = BenchmarkRunner()
+            runner.configuration = configuration
+            runner.configuration.regionOfInterest = nil
+            report = try await runner.run(clip: clip, manifest: manifest).summary
+        } catch {
+            report = "Benchmark failed: \(error.localizedDescription)"
+        }
+        Logger(subsystem: "com.awjackson2.Koubutsu", category: "Benchmark").notice("\(report, privacy: .public)")
+        benchmarkReport = report
+        isBenchmarking = false
     }
 
     // MARK: - Metrics
@@ -185,9 +271,13 @@ final class AppModel {
     private func startMetricsPolling() {
         metricsTask?.cancel()
         metricsTask = Task { [weak self] in
+            var tick = 0
             while !Task.isCancelled {
                 guard let self else { return }
                 self.metrics = self.pipelineMetrics.snapshot()
+                self.captureAudio.refreshLevel()
+                tick += 1
+                if tick % 4 == 0 { await self.performance.refresh(renderer: self.renderer) }
                 try? await Task.sleep(for: .milliseconds(250))
             }
         }

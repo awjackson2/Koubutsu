@@ -118,12 +118,18 @@ final class TestVideoSource: VideoSource, @unchecked Sendable {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.handleEnd() }
         }
-        statusObservation = item.observe(\.status, options: [.new]) { [weak self] item, _ in
+        statusObservation = Self.observeFailure(of: item, handlers: handlers)
+        player.play()
+    }
+
+    /// Built outside the main actor: KVO may call back on any thread.
+    private nonisolated static func observeFailure(of item: AVPlayerItem,
+                                                   handlers: SourceHandlers<VideoFrame>) -> NSKeyValueObservation {
+        item.observe(\.status, options: [.new]) { item, _ in
             guard item.status == .failed else { return }
             let reason = item.error?.localizedDescription ?? "playback failed"
-            self?.handlers.emit(.stateChanged(.failed(.mediaUnreadable(reason))))
+            handlers.emit(.stateChanged(.failed(.mediaUnreadable(reason))))
         }
-        player.play()
     }
 
     @MainActor

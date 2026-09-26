@@ -18,14 +18,55 @@ struct DebugPanel: View {
                 row("Last frame", "#\(t.sequence)  pts \(t.presentationTime)",
                     String(format: "age %.0f ms", max(0, model.clock.now() - t.hostTime) * 1000))
             }
+            let perf = model.performance.snapshot
+            row("Device", String(format: "CPU %.0f%%  mem %.0f MB", perf.cpuPercent, perf.memoryMB),
+                "thermal \(model.performance.thermalLabel)\(perf.lowPowerMode ? "  low power" : "")"
+                    + "  display dropped \(perf.displayDroppedFrames)/\(perf.displayTotalFrames)")
+            row("Audio", audioLabel, model.captureDevices.devices.map(\.name).joined(separator: ", "))
             row("OCR", String(format: "%.0f fps target  %.1f fps done", model.settings.ocrRate.rawValue,
                               m.ocrProcessedPerSecond),
                 "dropped \(m.ocrDroppedFrames)  failed \(m.ocrFailures)\(m.ocrInFlight ? "  ●" : "")")
             row("OCR latency", latency(m.ocrLatency), "capture→OCR " + latency(m.captureToOCRLatency))
+            row("Translation", model.translation.providerName, availabilityLabel)
+            row("Transl. latency", latency(m.translationLatency), "capture→EN " + latency(m.captureToTranslationLatency))
+            row("Shown", "capture→shown " + latency(m.captureToDisplayLatency),
+                "requests \(m.translationRequests)  failed \(m.translationFailures)")
+            row("Cache", "hit \(m.translationCacheHits)  miss \(m.translationCacheMisses)",
+                m.translationCacheHitRate.map { String(format: "hit rate %.0f%%  dup text %d", $0 * 100, m.duplicateTextDetections) }
+                    ?? "dup text \(m.duplicateTextDetections)")
         }
         .font(.caption.monospaced())
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(alignment: .top) {
+            Button(model.isBenchmarking ? "Benchmarking…" : "Run benchmark") {
+                Task { await model.runBenchmark() }
+            }
+            .disabled(model.isBenchmarking)
+            .font(.caption)
+            if let report = model.benchmarkReport {
+                Text(report).font(.caption2.monospaced()).foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var audioLabel: String {
+        switch model.captureAudio.state {
+        case .stopped: model.selection?.isCapture == true ? "capture audio off" : "test video audio"
+        case .running(let input): String(format: "%@ level %.2f", input, model.captureAudio.level)
+        case .unavailable(let reason): reason
+        }
+    }
+
+    private var availabilityLabel: String {
+        switch model.translation.availability {
+        case .installed: "installed"
+        case .needsDownload: "needs download"
+        case .unsupported: "unsupported"
+        case .unknown(let reason): "unknown: \(reason)"
+        case nil: "checking…"
+        }
     }
 
     private func latency(_ s: LatencySummary) -> String {

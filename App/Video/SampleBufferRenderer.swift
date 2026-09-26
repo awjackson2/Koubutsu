@@ -28,6 +28,12 @@ final class SampleBufferRenderer: @unchecked Sendable {
         videoRenderer.enqueue(frame.sampleBuffer)
     }
 
+    /// Display-side counters from the video renderer (frames rendered vs dropped since the last flush).
+    func performanceMetrics() async -> (total: Int, dropped: Int)? {
+        guard let metrics = await videoRenderer.videoPerformanceMetrics else { return nil }
+        return (metrics.totalNumberOfFrames, metrics.numberOfDroppedFrames)
+    }
+
     /// Clears the displayed image (source stopped or switched).
     func clear() {
         videoRenderer.flush(removingDisplayedImage: true, completionHandler: nil)

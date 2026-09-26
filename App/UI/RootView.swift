@@ -1,30 +1,50 @@
 import KoubutsuCore
 import SwiftUI
+import Translation
 import UniformTypeIdentifiers
 
 struct RootView: View {
     @State private var model = AppModel()
     @State private var showingImporter = false
+    @State private var showingSettings = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
+        let translationController = model.translation
         VStack(spacing: 0) {
             VideoDisplayView(renderer: model.renderer)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.black)
+                .overlay {
+                    VideoOverlayView(sourceSize: model.format?.size ?? model.latestOCR?.frameSize,
+                                     ocr: model.latestOCR,
+                                     displayed: translationController.displayed,
+                                     showBoxes: model.settings.showOCRBoxes,
+                                     showTranslations: model.settings.displayMode != .panel
+                                         && model.settings.showTranslation)
+                }
                 .overlay(alignment: .center) { sourceMessage }
-            RecognizedTextPanel(result: model.latestOCR, status: model.ocrStatus)
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                .frame(minHeight: 120, alignment: .top)
-                .background(Color(white: 0.05))
+            if model.settings.displayMode != .overlay || translationController.statusMessage != nil {
+                TranslationPanel(controller: translationController,
+                                 showOriginal: model.settings.showOriginalText,
+                                 showTranslation: model.settings.showTranslation
+                                     && model.settings.displayMode != .overlay)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .frame(minHeight: model.settings.displayMode == .overlay ? 0 : 110, alignment: .top)
+                    .background(Color(white: 0.05))
+            }
             if model.settings.showDebugStatistics {
+                RecognizedTextPanel(result: model.latestOCR, status: model.ocrStatus)
+                    .padding(.horizontal)
+                    .padding(.vertical, 4)
+                    .background(Color(white: 0.08))
                 DebugPanel(model: model)
                     .padding(.horizontal)
                     .padding(.vertical, 6)
                     .background(Color(white: 0.08))
             }
-            ControlBar(model: model, showingImporter: $showingImporter)
+            ControlBar(model: model, showingImporter: $showingImporter, showingSettings: $showingSettings)
         }
         .background(Color.black)
         .ignoresSafeArea(edges: .top)
@@ -34,6 +54,18 @@ struct RootView: View {
             if case .success(let url) = result {
                 Task { await model.importVideo(from: url) }
             }
+        }
+        .translationTask(translationController.downloadConfiguration) { session in
+            var failure: String?
+            do {
+                try await session.prepareTranslation()
+            } catch {
+                failure = error.localizedDescription
+            }
+            await translationController.downloadFinished(error: failure)
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(settings: $model.settings)
         }
         .task { await model.start() }
         .onChange(of: scenePhase) { _, phase in
@@ -55,6 +87,7 @@ struct RootView: View {
 private struct ControlBar: View {
     let model: AppModel
     @Binding var showingImporter: Bool
+    @Binding var showingSettings: Bool
 
     var body: some View {
         HStack(spacing: 16) {
@@ -65,7 +98,13 @@ private struct ControlBar: View {
                     }
                 }
                 Divider()
-                Button("USB capture device") { Task { await model.select(.uvc) } }
+                if model.captureDevices.devices.isEmpty {
+                    Button("USB capture (none connected)") { Task { await model.select(.uvc(nil)) } }
+                } else {
+                    ForEach(model.captureDevices.devices) { device in
+                        Button("\(device.name) (USB capture)") { Task { await model.select(.uvc(device)) } }
+                    }
+                }
                 Divider()
                 Button("Import video…") { showingImporter = true }
             } label: {
@@ -75,6 +114,11 @@ private struct ControlBar: View {
                 Task { model.isRunning ? await model.stop() : await model.start() }
             } label: {
                 Image(systemName: model.isRunning ? "stop.fill" : "play.fill")
+            }
+            Button {
+                showingSettings = true
+            } label: {
+                Image(systemName: "gearshape")
             }
             Spacer()
             Text(statusText)

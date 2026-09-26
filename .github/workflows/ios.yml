@@ -4,7 +4,7 @@ on:
   pull_request:
   workflow_dispatch:
 concurrency:
-  group: ios-v2-${{ github.ref }}
+  group: ios-v3-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build-test:

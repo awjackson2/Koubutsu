@@ -1,58 +1,88 @@
 # Architecture
 
-Last synced: Phase 1.2.0 (2026-09-26)
+Last synced: Phase 6.1.0 (2026-09-26)
 
 ## Layers
 
 ```
-┌──────────────────────────── App target (Koubutsu, iPadOS) ────────────────────────────┐
-│ UI (SwiftUI)          RootView, DebugPanel, TranslationPanel, Overlay                 │
-│ Composition           AppModel (@MainActor, @Observable) — owns pipeline & source     │
-│ Adapters (Apple)      TestVideoSource, UVCVideoSource, VideoFrame(CVPixelBuffer),     │
-│                       SampleBufferRenderer, VisionOCRService, AppleTranslationService │
-└──────────────────────────────────────┬─────────────────────────────────────────────────┘
-                                       │ depends on
-┌──────────────────────────── KoubutsuCore (Swift package, Foundation only) ────────────┐
-│ Media       MediaTime, HostTime, HostClock, FrameTiming, PixelSize, VideoSource        │
-│ Pipeline    FrameSampler, LatestValueMailbox                                           │
-│ Metrics     RateCounter, LatencyStats, PipelineMetrics                                 │
-│ Geometry    NormalizedRect/Point/Quad                                                  │
-│ OCR         RecognizedTextObservation, OCRResult, OCRConfiguration, OCRService         │
-│ Settings    AppSettings                                                                │
-└────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────── App target (Koubutsu, iPadOS 26) ─────────────────────────────────┐
+│ UI (SwiftUI)     RootView · VideoDisplayView · VideoOverlayView · TranslationPanel ·               │
+│                  RecognizedTextPanel · DebugPanel · SettingsView                                   │
+│ Composition      AppModel (@MainActor @Observable): source lifecycle, settings, hot-plug, benchmark │
+│                  TranslationController (@MainActor): stabilizer → history → coordinator → displayed │
+│ Adapters         Video: TestVideoSource · UVCVideoSource · VideoFrame · SampleBufferRenderer        │
+│                  Pipeline: FramePipeline · SampledFrameTap · OCR: VisionOCRService · OCRWorker      │
+│                  Translation: AppleTranslationService · Audio: CaptureAudioService                  │
+│                  Capture: CaptureDeviceMonitor · Performance: PerformanceMonitor · BenchmarkRunner  │
+└──────────────────────────────────────────────┬─────────────────────────────────────────────────────┘
+                                               │ depends on
+┌──────────────────────────────── KoubutsuCore (Foundation only, Linux-tested) ─────────────────────┐
+│ Media       MediaTime · HostTime · HostClock · FrameTiming · VideoSource · VideoFormat             │
+│ Pipeline    FrameSampler · LatestValueMailbox                                                      │
+│ Metrics     RateCounter · LatencyStats · PipelineMetrics                                           │
+│ Geometry    NormalizedRect/Point/Quad · CoordinateMapper · PlaneRect                               │
+│ OCR         RecognizedTextObservation · OCRResult · OCRConfiguration · OCRService                  │
+│ Text        TextNormalizer · TextBlockGrouper · TextStabilizer                                     │
+│ Translation TranslationService · TranslationRequest/Context · TranslationCache ·                   │
+│             TranslationCoordinator · DialogueHistory                                               │
+│ Overlay     OverlayLayout            Capture  CaptureFormatSelector                                │
+│ Benchmark   OCRBenchmark             Settings AppSettings                                          │
+└────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-`KoubutsuCore` builds and tests on Linux (`swift test`); the app target builds only on macOS CI.
-
-## Frame flow
+## Data flow
 
 ```
-VideoSource (delivery queue)
-   │ frame handler, synchronous
-   ├──▶ display renderer (enqueue; never waits)          ← display path
-   └──▶ FrameSampler.shouldSample(hostTime)?             ← OCR tap, O(1)
-            │ yes
-            ▼
-        LatestValueMailbox.offer(frame)   (displaced frame = dropped OCR frame)
-            ▼
-        OCR worker task: await next() → OCRService.recognize → OCRResult
-            ▼
-        @MainActor model update (debug panel / later: stabilizer → translation → overlay)
+TestVideoSource (AVPlayerItemVideoOutput pull, 2× source rate)   UVCVideoSource (AVCaptureVideoDataOutput)
+                   └──────────────┬─────────────────────────────────────────┘
+                                  ▼  frame handler, synchronous, source delivery queue
+                           FramePipeline.handle
+            ┌─────────────────────┼────────────────────────────────┐
+            ▼                     ▼                                ▼
+ SampleBufferRenderer      PipelineMetrics              SampledFrameTap (FrameSampler, 5 FPS default)
+ (AVSampleBufferDisplay-   (received/displayed)                    │ LatestValueMailbox (newest frame only)
+  Layer, display-                                                  ▼
+  immediately) — never                                  OCRWorker (detached task, one request in flight)
+  waits for anything                                               │ VisionOCRService (RecognizeTextRequest, ja)
+                                                                   ▼
+                                                   @MainActor: AppModel.latestOCR, TranslationController
+                                                                   │ TextStabilizer (grouping, tracking,
+                                                                   │  typewriter-aware stability)
+                                                                   ▼ .stabilized(StableText)
+                                                   DialogueHistory + TranslationCoordinator
+                                                     (LRU cache, in-flight dedup, metrics)
+                                                                   │ AppleTranslationService (on device)
+                                                                   ▼
+                                                   displayed → TranslationPanel / VideoOverlayView
+                                                     (CoordinateMapper + OverlayLayout)
 ```
 
 Invariants:
-- The delivery handler does constant work: enqueue to display, a sampler check, a mailbox offer, metrics.
-- No component retains frames beyond the mailbox slot and the one in-flight OCR request.
-- Timing (`FrameTiming`) travels with every derived result, so latency is measurable at each stage.
+- The delivery handler does constant work: display enqueue, metrics, a sampler check, a mailbox offer.
+- At most one frame waits for OCR and one is being recognized; everything else is dropped and counted.
+- `FrameTiming` travels with OCR results, stable text and translations: capture→OCR, capture→translation and
+  capture→shown latencies are measured, not estimated.
 
 ## Coordinate convention
 
-All recognized geometry is stored as `NormalizedRect` with a top-left origin in source-frame space.
-Vision's bottom-left rectangles are converted once in the Vision adapter. View-space mapping is owned by
-the coordinate-mapping layer (Major 3).
+Recognized geometry is stored as `NormalizedRect` (top-left origin, source-frame space). Vision's
+bottom-left rectangles/points are converted exactly once in `VisionOCRService` (including ROI → full-frame).
+`CoordinateMapper` is the only code converting to pixels or view points; the overlay uses `.aspectFit`,
+matching the display layer's `.resizeAspect`.
 
 ## Clocks
 
-`HostTime` is the host monotonic clock (`CACurrentMediaTime` on Apple = capture sample-buffer clock).
-Presentation time (`MediaTime`) is per-source and restarts on test-video loops. Latency is always measured
-in host time. Audio (Major 6) will be stamped in the same host domain.
+`HostTime` = host monotonic clock (`CACurrentMediaTime`), the clock capture sample buffers are stamped in.
+Test-video frames are stamped with the host time they were pulled. Audio tap buffers (UAC) carry
+`AVAudioTime` host times in the same domain for future synchronization.
+
+## Lifecycle
+
+`AppModel` owns every transition: select/start/stop source, background → stop, foreground → restart,
+capture device connect → auto-switch (setting), disconnect → error + wait, reconnect → restart.
+
+## Privacy
+
+OCR (Vision) and translation (Apple Translation, installed-language sessions) run on device. Video frames
+and text are never sent off device. `TranslationService.sendsDataOffDevice` exists so any future cloud
+backend must be explicitly surfaced and consented to.
