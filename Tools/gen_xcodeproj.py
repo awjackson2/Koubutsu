@@ -87,7 +87,8 @@ APP = {
     "GENERATE_INFOPLIST_FILE": "YES",
     "INFOPLIST_KEY_CFBundleDisplayName": "Koubutsu",
     "INFOPLIST_KEY_LSApplicationCategoryType": "public.app-category.utilities",
-    "INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace": "NO",
+    "INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace": "YES",
+    "INFOPLIST_KEY_UIFileSharingEnabled": "YES",
     "INFOPLIST_KEY_NSCameraUsageDescription":
         "Koubutsu reads video from an external USB capture device to display and translate game text.",
     "INFOPLIST_KEY_NSMicrophoneUsageDescription":
