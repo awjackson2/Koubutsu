@@ -46,6 +46,12 @@ struct LaunchOptions {
     var demoTranslator = false
     var resetSettings = false
     var showTranscript = false
+    /// Select the first media item whose name contains this text (Video mode automation).
+    var selectVideo: String?
+    /// Seek to this media time after the source starts.
+    var startAt: Double?
+    /// Pause this many seconds after starting.
+    var pauseAfter: Double?
     var displayMode: AppSettings.DisplayMode?
     var showBoxes: Bool?
     var showDebug: Bool?
@@ -62,6 +68,9 @@ struct LaunchOptions {
             case "--hide-debug": showDebug = false
             case "--show-debug": showDebug = true
             default:
+                if arg.hasPrefix("--select-video=") { selectVideo = String(arg.dropFirst("--select-video=".count)) }
+                if arg.hasPrefix("--start-at=") { startAt = Double(arg.dropFirst("--start-at=".count)) }
+                if arg.hasPrefix("--pause-after=") { pauseAfter = Double(arg.dropFirst("--pause-after=".count)) }
                 if arg.hasPrefix("--display-mode=") {
                     displayMode = AppSettings.DisplayMode(rawValue: String(arg.dropFirst("--display-mode=".count)))
                 }

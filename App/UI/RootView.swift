@@ -70,6 +70,7 @@ struct RootView: View {
         .task {
             if LaunchOptions.current.showTranscript { showingTranscript = true }
             await model.start()
+            await model.applyLaunchPlayback()
         }
         .onChange(of: scenePhase) { _, phase in
             Task { await model.scenePhaseChanged(phase) }

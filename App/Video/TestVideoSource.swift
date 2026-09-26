@@ -35,6 +35,12 @@ final class TestVideoSource: VideoSource, PlaybackControlling, @unchecked Sendab
     private var factory = VideoFrameFactory()
     private var sequence: UInt64 = 0
     private var sessionID: UInt64 = 0
+    /// Last delivered image, re-delivered while paused so OCR keeps reading the frozen frame.
+    private var lastPixelBuffer: CVPixelBuffer?
+    private var lastPTS = CMTime.invalid
+    private var lastDelivery: CFTimeInterval = 0
+    /// Re-delivery interval while no new frames arrive (paused or stalled).
+    private let stillFrameInterval: CFTimeInterval = 0.25
 
     init(url: URL, loops: Bool = true, displayName: String? = nil) {
         self.url = url
@@ -70,6 +76,7 @@ final class TestVideoSource: VideoSource, PlaybackControlling, @unchecked Sendab
             timer?.cancel()
             timer = nil
             output = nil
+            lastPixelBuffer = nil
         }
         let wasRunning = await teardownPlayer()
         if wasRunning { handlers.emit(.stateChanged(.stopped)) }
@@ -215,12 +222,26 @@ final class TestVideoSource: VideoSource, PlaybackControlling, @unchecked Sendab
         guard let output else { return }
         let host = CACurrentMediaTime()
         let itemTime = output.itemTime(forHostTime: host)
-        guard output.hasNewPixelBuffer(forItemTime: itemTime) else { return }
-        var displayTime = CMTime.invalid
-        guard let pixelBuffer = output.copyPixelBuffer(forItemTime: itemTime, itemTimeForDisplay: &displayTime) else {
+        let pixelBuffer: CVPixelBuffer
+        let pts: CMTime
+        if output.hasNewPixelBuffer(forItemTime: itemTime) {
+            var displayTime = CMTime.invalid
+            guard let buffer = output.copyPixelBuffer(forItemTime: itemTime, itemTimeForDisplay: &displayTime) else {
+                return
+            }
+            pixelBuffer = buffer
+            pts = displayTime.isValid ? displayTime : itemTime
+        } else if let last = lastPixelBuffer, host - lastDelivery >= stillFrameInterval {
+            // Paused (or stalled): hand the same image to the pipeline again so OCR/stabilization keep
+            // working on what the user is looking at. Display re-enqueue of an identical image is invisible.
+            pixelBuffer = last
+            pts = lastPTS
+        } else {
             return
         }
-        let pts = displayTime.isValid ? displayTime : itemTime
+        lastPixelBuffer = pixelBuffer
+        lastPTS = pts
+        lastDelivery = host
         let timing = FrameTiming(sequence: sequence, presentationTime: MediaTime(pts),
                                  hostTime: HostTime(seconds: host), sourceSessionID: sessionID)
         sequence += 1

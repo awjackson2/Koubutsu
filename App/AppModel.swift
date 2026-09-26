@@ -84,7 +84,10 @@ final class AppModel {
         settings = initialSettings
         applySettings()
         refreshMedia()
-        if settings.autoSwitchToCapture, let device = captureDevices.devices.first {
+        if let name = options.selectVideo,
+           let item = mediaItems.first(where: { $0.name.localizedCaseInsensitiveContains(name) }) {
+            selection = .media(item)
+        } else if settings.autoSwitchToCapture, let device = captureDevices.devices.first {
             selection = .uvc(device)
         } else {
             selection = MediaLibrary.defaultItem.map { .media($0) }
@@ -259,6 +262,17 @@ final class AppModel {
             sourceState = .failed(.deviceDisconnected(device.name))
             errorMessage = VideoSourceError.deviceDisconnected(device.name).description
                 + " Reconnect it to continue."
+        }
+    }
+
+    /// Applies `--start-at` / `--pause-after` once, for automation of Video mode captures.
+    func applyLaunchPlayback() async {
+        let options = LaunchOptions.current
+        guard playbackControl != nil, options.startAt != nil || options.pauseAfter != nil else { return }
+        if let start = options.startAt { await seek(to: start) }
+        if let pauseAfter = options.pauseAfter {
+            try? await Task.sleep(for: .seconds(pauseAfter))
+            await playbackControl?.pause()
         }
     }
 

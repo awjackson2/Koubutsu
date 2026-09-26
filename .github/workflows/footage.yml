@@ -11,14 +11,20 @@ on:
       fps:
         description: OCR samples per second of video
         default: "1"
+      screenshot_times:
+        description: Media times (s) to capture app screenshots at, space separated (empty = none)
+        default: ""
+      analyze:
+        description: Run the full-footage OCR analysis
+        default: "true"
   push:
     paths:
       - "App/Video/VideoAnalyzer.swift"
       - "AppTests/FootageAnalysisTests.swift"
       - ".github/workflows/footage.yml"
 concurrency:
-  group: footage-${{ github.ref }}
-  cancel-in-progress: true
+  group: footage-${{ github.run_id }}
+  cancel-in-progress: false
 jobs:
   analyze:
     runs-on: macos-latest
@@ -41,18 +47,27 @@ jobs:
         if: steps.footage.outputs.present == 'true'
         run: Tools/ci_select_xcode.sh
       - name: Analyze footage
-        if: steps.footage.outputs.present == 'true'
+        if: steps.footage.outputs.present == 'true' && github.event.inputs.analyze != 'false'
         env:
           TEST_RUNNER_KOUBUTSU_FOOTAGE: ${{ runner.temp }}/footage/footage.mov
           TEST_RUNNER_KOUBUTSU_FOOTAGE_FPS: ${{ github.event.inputs.fps || '1' }}
           XCODEBUILD_TIME_LIMIT: "5000"
         run: mkdir -p build && Tools/ci_simulator_test.sh test -only-testing:KoubutsuTests/FootageAnalysisTests
       - name: Report
-        if: always() && steps.footage.outputs.present == 'true'
+        if: always() && steps.footage.outputs.present == 'true' && github.event.inputs.analyze != 'false'
         run: |
           mkdir -p build/attachments
           xcrun xcresulttool export attachments --path build/Koubutsu-test.xcresult --output-path build/attachments || true
           find build/attachments -name "*.txt" -exec cat {} \;
+      - name: App screenshots on the footage
+        if: steps.footage.outputs.present == 'true' && github.event.inputs.screenshot_times != ''
+        run: Tools/ci_footage_screenshots.sh "$RUNNER_TEMP/footage/footage.mov" footage "${{ github.event.inputs.screenshot_times }}"
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.footage.outputs.present == 'true' && github.event.inputs.screenshot_times != ''
+        with:
+          name: footage-screenshots
+          path: build/footage-screenshots/
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always() && steps.footage.outputs.present == 'true'
         with:
