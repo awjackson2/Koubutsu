@@ -25,6 +25,7 @@ enum SyntheticFrames {
     }
 }
 
+@Suite(.timeLimit(.minutes(2)))
 struct FrameTapTests {
     @Test func factoryWrapsWithoutCopying() {
         let frames = SyntheticFrames.frames(count: 2)

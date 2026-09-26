@@ -4,7 +4,7 @@ import Testing
 @testable import Koubutsu
 
 /// Real Vision OCR against real decoded frames of the committed synthetic clip.
-@Suite(.serialized)
+@Suite(.serialized, .timeLimit(.minutes(2)))
 struct OCRFixtureTests {
     let manifest: ClipManifest
     let clipURL: URL

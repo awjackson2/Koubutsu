@@ -11,7 +11,9 @@ final class FrameRecorder: Sendable {
     var all: [(FrameTiming, PixelSize)] { frames.withLock { $0 } }
 }
 
-func waitUntil(timeout: Double, _ condition: () -> Bool) async -> Bool {
+/// Polls `condition` on the caller's actor until it holds or `timeout` seconds pass.
+func waitUntil(isolation: isolated (any Actor)? = #isolation, timeout: Double,
+               _ condition: () -> Bool) async -> Bool {
     let deadline = Date().addingTimeInterval(timeout)
     while Date() < deadline {
         if condition() { return true }
@@ -20,7 +22,7 @@ func waitUntil(timeout: Double, _ condition: () -> Bool) async -> Bool {
     return condition()
 }
 
-@Suite(.serialized)
+@Suite(.serialized, .timeLimit(.minutes(2)))
 struct TestVideoSourceTests {
     @Test func bundledClipAndManifestArePresent() throws {
         let clip = try #require(MediaLibrary.defaultItem)
