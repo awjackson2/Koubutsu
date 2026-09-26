@@ -20,6 +20,17 @@ Nothing is injected into the Switch or the game: everything works on the externa
 | UVC capture + hot-plug, UAC audio passthrough | implemented; unverified without capture hardware |
 | Physical iPad / capture hardware measurements | procedure in `docs/device_testing.md` |
 
+## Screenshots
+
+iPad Pro 13" simulator, CI run 13, bundled synthetic clip. The simulator has no Japanese→English model, so these
+use the labelled demo translator (`--demo-translator`, shown as "Demo table (synthetic clip)" in the debug
+panel); OCR, stabilization, caching, layout and all metrics are the real pipeline. Simulator OCR is CPU-only
+(~1.4–1.8 s per 1080p frame here); device numbers come from `docs/device_testing.md`.
+
+| Dialogue: OCR box, JP/EN panel, debug metrics | Title screen | Overlay mode (bug: stale menu overlays) |
+|---|---|---|
+| ![panel](docs/screenshots/ci13_panel_debug_dialogue.jpg) | ![title](docs/screenshots/ci13_panel_debug_title.jpg) | ![overlay bug](docs/screenshots/ci13_overlay_stale_menu_bug.jpg) |
+
 ## Requirements
 
 - Xcode 26.x, iPadOS 26.0+ on a USB-C iPad.
