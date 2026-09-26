@@ -26,12 +26,13 @@ final class TableTranslator: KoubutsuCore.TranslationService {
     }
 }
 
-private func ocr(_ text: String, at t: Double) -> OCRResult {
+private let dialogueBox = NormalizedRect(x: 0.1, y: 0.75, width: 0.5, height: 0.06)
+
+private func ocr(_ text: String, at t: Double, box: NormalizedRect = dialogueBox) -> OCRResult {
     let frame = FrameTiming(sequence: UInt64(t * 60), presentationTime: MediaTime(seconds: t),
                             hostTime: HostTime(seconds: t), sourceSessionID: 1)
     let obs = RecognizedTextObservation(text: text, confidence: 0.9,
-                                        boundingBox: NormalizedRect(x: 0.1, y: 0.75, width: 0.5, height: 0.06),
-                                        frame: frame)
+                                        boundingBox: box, frame: frame)
     return OCRResult(frame: frame, frameSize: .init(width: 1920, height: 1080), observations: [obs],
                      started: frame.hostTime, finished: frame.hostTime.adding(0.05), configuration: .japanese)
 }
@@ -73,6 +74,19 @@ struct TranslationControllerTests {
         }
         #expect(updated)
         #expect(controller.history.entries.map(\.source) == ["ここから先は危険だ"])
+    }
+
+    @Test func shownBoxFollowsTheTextWithoutRetranslating() async {
+        let translator = TableTranslator(["鍵が必要です": "You need a key."])
+        let controller = TranslationController(service: translator, metrics: PipelineMetrics(clock: AppleHostClock()),
+                                               clock: AppleHostClock())
+        await controller.refreshAvailability()
+        controller.process(ocr("鍵が必要です", at: 0))
+        let moved = NormalizedRect(x: 0.1, y: 0.76, width: 0.52, height: 0.06)
+        controller.process(ocr("鍵が必要です", at: 0.1, box: moved))
+        #expect(controller.displayed.first?.stable.boundingBox == moved)
+        _ = await waitUntil(timeout: 5) { controller.displayed.first?.translation != nil }
+        #expect(translator.calls.load(ordering: .relaxed) == 1)
     }
 
     @Test func mediaTimeGoingBackwardsClearsTheScreen() async {

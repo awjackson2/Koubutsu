@@ -27,6 +27,7 @@ struct OverlayLayoutTests {
         #expect(abs(p[0].frame.height - (source.height + 8)) < 1e-9)
         let lines = layout.wrappedLines(textLength: 160, width: p[0].frame.width - 8, fontSize: p[0].fontSize)
         #expect(Double(lines) * p[0].fontSize * layout.lineHeightFactor <= source.height)
+        #expect(p[0].lineLimit == lines)
     }
 
     @Test func textThatCannotFitGrowsDownward() {

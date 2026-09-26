@@ -63,10 +63,11 @@ struct VideoOverlayView: View {
                     .font(.system(size: placement.fontSize, weight: .semibold))
                     .foregroundStyle(.white)
                     .lineSpacing(0)
-                    .minimumScaleFactor(0.6)
+                    .lineLimit(placement.lineLimit)
+                    .minimumScaleFactor(0.4)
                     .padding(layout.padding)
                     .frame(width: placement.frame.width, height: placement.frame.height, alignment: .leading)
-                    .background(Color(white: 0.06).opacity(0.94), in: RoundedRectangle(cornerRadius: 4))
+                    .background(Color(white: 0.06), in: RoundedRectangle(cornerRadius: 4))
                     .offset(x: placement.frame.x, y: placement.frame.y)
             }
         }
