@@ -48,6 +48,9 @@ final class PerformanceMonitor {
         var count: mach_msg_type_number_t = 0
         guard task_threads(mach_task_self_, &threads, &count) == KERN_SUCCESS, let threads else { return 0 }
         defer {
+            // task_threads returns a send right per thread plus the array; both must be released or the
+            // process leaks Mach ports on every sample.
+            for i in 0..<Int(count) { mach_port_deallocate(mach_task_self_, threads[i]) }
             vm_deallocate(mach_task_self_, vm_address_t(UInt(bitPattern: threads)),
                           vm_size_t(Int(count) * MemoryLayout<thread_t>.stride))
         }

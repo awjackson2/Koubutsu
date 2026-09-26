@@ -32,7 +32,8 @@ series() { # name, launch args...
   for t in 20 90 150 210 270; do
     sleep $(( t - ${last:-0} )); last=$t
     xcrun simctl io "$UDID" screenshot "build/screenshots/${name}_t${t}s.png" > /dev/null
-    echo "captured ${name} at ${t}s"
+    if xcrun simctl spawn "$UDID" launchctl list | grep -q "$BUNDLE"; then state=running; else state=NOT-RUNNING; fi
+    echo "captured ${name} at ${t}s (app ${state})"
   done
   last=0
 }
@@ -41,3 +42,10 @@ series panel_debug --demo-translator --display-mode=panel --show-boxes --show-de
 series overlay --demo-translator --display-mode=panelAndOverlay --hide-debug
 xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
 ls -la build/screenshots
+echo "--- crash reports ---"
+find ~/Library/Logs/DiagnosticReports -name "Koubutsu*" -newer build/screenshots-build.log 2>/dev/null | while read -r f; do
+  cp "$f" build/screenshots/ ; echo "== $f"; head -80 "$f"
+done
+echo "--- app log (errors/faults) ---"
+xcrun simctl spawn "$UDID" log show --last 15m --style compact --predicate \
+  'process == "Koubutsu" AND (messageType == error OR messageType == fault)' 2>/dev/null | tail -60 || true
