@@ -293,6 +293,34 @@ final class AppModel {
         playback = await playbackControl?.playbackStatus()
     }
 
+    /// Progress 0...1 of "Analyze whole video", nil when idle.
+    private(set) var analysisProgress: Double?
+    private(set) var analysisSummary: String?
+
+    /// Runs OCR over the whole current video offline (faster than playback) and fills the transcript.
+    func analyzeCurrentVideo() async {
+        guard analysisProgress == nil, let url = currentMediaURL else { return }
+        analysisProgress = 0
+        let progress = ProgressBox()
+        let poll = Task { [weak self] in
+            while !Task.isCancelled {
+                self?.analysisProgress = progress.value
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+        }
+        var analyzer = VideoAnalyzer()
+        analyzer.configuration = settings.ocrConfiguration
+        do {
+            let report = try await analyzer.analyze(url: url) { progress.value = $0 }
+            translation.adoptTranscript(report.transcript)
+            analysisSummary = report.summary
+        } catch {
+            analysisSummary = "Analysis failed: \(error.localizedDescription)"
+        }
+        poll.cancel()
+        analysisProgress = nil
+    }
+
     // MARK: - Benchmark
 
     /// Runs the OCR benchmark over the bundled clip (on device: real ANE/GPU numbers).

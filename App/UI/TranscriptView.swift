@@ -39,6 +39,26 @@ struct TranscriptView: View {
                                            description: Text("Stable Japanese text appears here as the video plays."))
                 }
             }
+            .safeAreaInset(edge: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    if let progress = model.analysisProgress {
+                        ProgressView(value: progress) { Text("Analyzing whole video…") }
+                    } else {
+                        Button {
+                            Task { await model.analyzeCurrentVideo() }
+                        } label: {
+                            Label("Analyze whole video", systemImage: "text.viewfinder")
+                        }
+                    }
+                    if let summary = model.analysisSummary {
+                        Text(summary).font(.caption2.monospaced()).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.bar)
+            }
             .navigationTitle("Transcript (\(entries.count))")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }

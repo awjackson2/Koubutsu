@@ -22,13 +22,15 @@ print("Selected", best[0], file=sys.stderr)
 ')
 echo "Simulator: ${UDID}"
 ACTION=${1:-test}
+shift || true
+EXTRA=("$@")
 STATUS=0
 LIMIT=${XCODEBUILD_TIME_LIMIT:-2700}
 xcodebuild -project Koubutsu.xcodeproj -scheme Koubutsu \
   -destination "id=${UDID}" \
   -resultBundlePath "build/Koubutsu-${ACTION}.xcresult" \
   CODE_SIGNING_ALLOWED=NO \
-  "${ACTION}" > build/xcodebuild.log 2>&1 &
+  "${ACTION}" ${EXTRA[@]+"${EXTRA[@]}"} > build/xcodebuild.log 2>&1 &
 PID=$!
 START=$(date +%s)
 while kill -0 "$PID" 2>/dev/null; do

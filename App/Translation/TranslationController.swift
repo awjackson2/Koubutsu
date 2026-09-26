@@ -102,6 +102,28 @@ final class TranslationController {
         lastMediaTime = nil
     }
 
+    /// Replaces the transcript with an offline analysis result and translates its lines.
+    func adoptTranscript(_ analyzed: TranscriptBuilder) {
+        transcript = analyzed
+        guard isEnabled, availability == nil || availability == .installed else { return }
+        let entries = analyzed.entries
+        let (source, target, quality) = (sourceLanguage, targetLanguage, quality)
+        Task {
+            for entry in entries where entry.english == nil {
+                let frame = FrameTiming(sequence: 0, presentationTime: MediaTime(seconds: entry.start),
+                                        hostTime: clock.now(), sourceSessionID: 0)
+                let stable = StableText(trackID: entry.trackID, text: entry.japanese,
+                                        key: TextNormalizer.key(entry.japanese), boundingBox: entry.boundingBox,
+                                        confidence: entry.confidence, lines: [], firstSeenFrame: frame,
+                                        stabilizedFrame: frame)
+                if let result = try? await coordinator.translate(stable, sourceLanguage: source,
+                                                                  targetLanguage: target, quality: quality) {
+                    transcript.translated(id: entry.id, english: result.translation)
+                }
+            }
+        }
+    }
+
     /// A different video/source starts: new transcript.
     func clearTranscript() {
         transcript.removeAll()
