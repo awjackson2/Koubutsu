@@ -23,14 +23,14 @@ Nothing is injected into the Switch or the game: everything works on the externa
 
 ## Screenshots
 
-Replace-in-place on real footage (Persona 3 Reload, Japanese; CI footage run 9 on commit d5e9a01, iPad
-simulator). The simulator has no translation model, so the English is a labelled `[EN] …` placeholder of
+Replace-in-place on real footage (Persona 3 Reload, Japanese; CI footage run 10 on commit ecd62ee, Phase 7.6.1,
+iPad simulator). The simulator has no translation model, so the English is a labelled `[EN] …` placeholder of
 realistic length: these frames check where and how the English replaces the Japanese, not translation
 quality. The footage itself is not in the repository.
 
 | Dialogue | Classroom (board, dialogue) | Dialogue, two lines | Dialogue, split lines |
 |---|---|---|---|
-| ![12s](docs/screenshots/p3r76_replace_12s.jpg) | ![106s](docs/screenshots/p3r76_replace_106s.jpg) | ![274s](docs/screenshots/p3r76_replace_274s.jpg) | ![314s](docs/screenshots/p3r76_replace_314s.jpg) |
+| ![12s](docs/screenshots/p3r761_replace_12s.jpg) | ![106s](docs/screenshots/p3r761_replace_106s.jpg) | ![274s](docs/screenshots/p3r761_replace_274s.jpg) | ![314s](docs/screenshots/p3r761_replace_314s.jpg) |
 
 Synthetic clip:
 
