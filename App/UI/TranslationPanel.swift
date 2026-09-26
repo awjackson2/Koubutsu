@@ -24,6 +24,9 @@ struct TranslationPanel: View {
             }
             ForEach(controller.displayed) { item in
                 VStack(alignment: .leading, spacing: 2) {
+                    if let speaker = item.stable.speaker {
+                        Text(speaker).font(.caption.bold()).foregroundStyle(.tint).padding(.leading, 34)
+                    }
                     if showOriginal {
                         line("JP", Text(item.stable.text).font(.title3))
                     }

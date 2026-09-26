@@ -9,6 +9,7 @@ struct VideoAnalyzer {
         var transcript: TranscriptBuilder
         var sampledFrames: Int
         var framesWithText: Int
+        var suppressedHUD: Int
         var meanOCRDuration: Double
         var videoDuration: Double
         var elapsed: Double
@@ -17,7 +18,7 @@ struct VideoAnalyzer {
             """
             video: \(MediaTimeFormat.clock(videoDuration)), sampled frames: \(sampledFrames), with text: \(framesWithText)
             mean OCR: \(Int(meanOCRDuration * 1000)) ms, analysis time: \(MediaTimeFormat.clock(elapsed))
-            stable dialogue lines: \(transcript.entries.count)
+            stable dialogue lines: \(transcript.entries.count), with speaker: \(transcript.entries.filter { $0.speaker != nil }.count), HUD suppressed: \(suppressedHUD)
             """
         }
     }
@@ -26,6 +27,7 @@ struct VideoAnalyzer {
     var configuration = OCRConfiguration.japanese
     /// OCR samples per second of video.
     var sampleRate: Double = 2
+    var hidesHUDText = true
 
     /// - Parameter progress: called with 0...1 on an arbitrary thread.
     func analyze(url: URL, progress: (@Sendable (Double) -> Void)? = nil) async throws -> Report {
@@ -44,6 +46,7 @@ struct VideoAnalyzer {
         }
         var stabilizer = TextStabilizer()
         var transcript = TranscriptBuilder()
+        var hud = HUDFilter()
         var nextTime = 0.0, sequence: UInt64 = 0, sampled = 0, withText = 0, ocrTotal = 0.0
         while let sampleBuffer = output.copyNextSampleBuffer() {
             try Task.checkCancellation()
@@ -61,7 +64,9 @@ struct VideoAnalyzer {
             if !result.observations.isEmpty { withText += 1 }
             for event in stabilizer.process(result) {
                 switch event {
-                case .stabilized(let stable): transcript.stabilized(stable)
+                case .stabilized(let stable):
+                    if hidesHUDText, hud.isHUD(stable) { continue }
+                    transcript.stabilized(stable)
                 case .removed(let id), .invalidated(let id): transcript.ended(trackID: id, at: pts.seconds)
                 }
             }
@@ -69,6 +74,7 @@ struct VideoAnalyzer {
         }
         reader.cancelReading()
         return Report(transcript: transcript, sampledFrames: sampled, framesWithText: withText,
+                      suppressedHUD: hud.suppressedCount,
                       meanOCRDuration: sampled > 0 ? ocrTotal / Double(sampled) : 0, videoDuration: duration,
                       elapsed: Date().timeIntervalSince(started))
     }

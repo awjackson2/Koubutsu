@@ -24,6 +24,9 @@ struct TranscriptView: View {
                             .foregroundStyle(.secondary)
                             .frame(width: 52, alignment: .leading)
                         VStack(alignment: .leading, spacing: 2) {
+                            if let speaker = entry.speaker {
+                                Text(speaker).font(.caption.bold()).foregroundStyle(.tint)
+                            }
                             Text(entry.japanese)
                             if let english = entry.english {
                                 Text(english).foregroundStyle(.secondary)

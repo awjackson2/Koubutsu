@@ -118,6 +118,7 @@ final class AppModel {
         processingTap.setRate(settings.ocrRate.rawValue)
         ocrWorker.setConfiguration(settings.ocrConfiguration)
         captureAudio.volume = Float(settings.captureAudioVolume)
+        translation.hidesHUDText = settings.hideHUDText
         translation.quality = settings.translationMode == .higherQuality ? .highFidelity : .lowLatency
         translation.sourceLanguage = settings.sourceLanguage
         translation.targetLanguage = settings.targetLanguage
@@ -310,6 +311,7 @@ final class AppModel {
         }
         var analyzer = VideoAnalyzer()
         analyzer.configuration = settings.ocrConfiguration
+        analyzer.hidesHUDText = settings.hideHUDText
         do {
             let report = try await analyzer.analyze(url: url) { progress.value = $0 }
             translation.adoptTranscript(report.transcript)

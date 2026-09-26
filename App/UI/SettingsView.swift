@@ -20,6 +20,7 @@ struct SettingsView: View {
                         Text("Fast").tag(OCRQuality.fast)
                         Text("Accurate").tag(OCRQuality.accurate)
                     }
+                    Toggle("Ignore HUD text (button hints, dates)", isOn: $settings.hideHUDText)
                     Picker("Region", selection: $settings.regionOfInterestMode) {
                         Text("Full screen").tag(AppSettings.RegionOfInterestMode.fullFrame)
                         Text("Dialogue (bottom 40%)").tag(AppSettings.RegionOfInterestMode.dialogue)

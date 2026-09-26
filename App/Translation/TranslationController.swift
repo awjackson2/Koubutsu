@@ -40,6 +40,9 @@ final class TranslationController {
     var targetLanguage = "en"
     var quality: TranslationQuality = .lowLatency
     var isEnabled = true
+    /// Suppress persistent HUD text (see `HUDFilter`).
+    var hidesHUDText = true
+    private(set) var hudFilter = HUDFilter()
 
     private var stabilizer = TextStabilizer()
     private var reportedDuplicates = 0
@@ -127,6 +130,7 @@ final class TranslationController {
     /// A different video/source starts: new transcript.
     func clearTranscript() {
         transcript.removeAll()
+        hudFilter.reset()
         lastMediaTime = nil
     }
 
@@ -149,6 +153,7 @@ final class TranslationController {
         for event in events {
             switch event {
             case .stabilized(let stable):
+                if hidesHUDText, hudFilter.isHUD(stable) { continue }
                 history.record(stable)
                 transcript.stabilized(stable)
                 upsert(DisplayedText(stable: stable, status: .translating))
@@ -179,7 +184,7 @@ final class TranslationController {
             }
         }
         let context = TranslationContext(previousDialogue: history.context(before: stable.id),
-                                         screenRegion: stable.boundingBox)
+                                         speaker: stable.speaker, screenRegion: stable.boundingBox)
         let (source, target, quality) = (sourceLanguage, targetLanguage, quality)
         Task {
             do throws(KoubutsuCore.TranslationError) {

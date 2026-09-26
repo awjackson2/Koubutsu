@@ -11,10 +11,14 @@ public struct TextBlock: Sendable, Hashable {
     /// Lowest line confidence.
     public var confidence: Float
     public var frame: FrameTiming
+    /// Speaker name label drawn above the text (e.g. 「伊織順平」 in a Persona dialogue box), kept out of
+    /// `text` and `key` so it is not translated as dialogue and its OCR noise cannot re-trigger stabilization.
+    public var speaker: String?
 
-    public init(lines: [RecognizedTextObservation]) {
+    public init(lines: [RecognizedTextObservation], speaker: String? = nil) {
         precondition(!lines.isEmpty)
         self.lines = lines
+        self.speaker = speaker
         let joined = lines.map { TextNormalizer.display($0.text) }.reduce("") { acc, next in
             guard let last = acc.last, let first = next.first else { return acc + next }
             let needsSpace = !TextNormalizer.isJapanese(last) && !TextNormalizer.isJapanese(first)
@@ -45,6 +49,10 @@ public struct TextBlockGrouper: Sendable {
     public var maximumFragmentGapRatio: Double = 1.2
     /// Rows count as the same line when their vertical overlap is at least this fraction of the shorter one.
     public var minimumRowOverlap: Double = 0.5
+    /// Speaker labels: at most this many key characters…
+    public var maximumSpeakerLength: Int = 10
+    /// …and at most this fraction of the text's line height.
+    public var maximumSpeakerHeightRatio: Double = 0.85
 
     public init() {}
 
@@ -61,7 +69,43 @@ public struct TextBlockGrouper: Sendable {
                 groups.append([line])
             }
         }
-        return groups.map(TextBlock.init(lines:))
+        return attachSpeakers(groups.map { TextBlock(lines: $0) })
+    }
+
+    /// Separates speaker labels: a short, smaller line at the top of a block, or a short, smaller block
+    /// directly above-left of another block.
+    func attachSpeakers(_ blocks: [TextBlock]) -> [TextBlock] {
+        var result: [TextBlock] = blocks.map { block in
+            guard block.lines.count >= 2, block.speaker == nil else { return block }
+            let rest = Array(block.lines.dropFirst())
+            guard isSpeakerLabel(block.lines[0], above: rest) else { return block }
+            return TextBlock(lines: rest, speaker: TextNormalizer.display(block.lines[0].text))
+        }
+        var consumed = Set<Int>()
+        for (i, label) in result.enumerated() where label.lines.count == 1 && label.speaker == nil {
+            guard let target = result.indices.first(where: { j in
+                j != i && !consumed.contains(j) && result[j].speaker == nil
+                    && isSpeakerLabel(label.lines[0], above: result[j].lines)
+            }) else { continue }
+            result[target].speaker = TextNormalizer.display(label.lines[0].text)
+            consumed.insert(i)
+        }
+        return result.enumerated().filter { !consumed.contains($0.offset) }.map(\.element)
+    }
+
+    func isSpeakerLabel(_ label: RecognizedTextObservation, above text: [RecognizedTextObservation]) -> Bool {
+        guard let first = text.first else { return false }
+        let keyLength = TextNormalizer.key(label.text).count
+        guard (1...maximumSpeakerLength).contains(keyLength) else { return false }
+        let heights = text.map(\.boundingBox.height).sorted()
+        let lineHeight = heights[heights.count / 2]
+        let l = label.boundingBox, t = first.boundingBox
+        guard lineHeight > 0, l.height <= maximumSpeakerHeightRatio * lineHeight else { return false }
+        // Directly above the first text line (small overlap allowed), not far away.
+        let gap = t.minY - l.maxY
+        guard gap >= -0.3 * lineHeight, gap <= 2.5 * lineHeight else { return false }
+        // Starts left of (or near) the text's left edge, within a few line heights.
+        return l.minX <= t.minX + 1.0 * lineHeight && l.minX >= t.minX - 6.0 * lineHeight
     }
 
     /// Joins side-by-side fragments of the same line into one observation (left to right).

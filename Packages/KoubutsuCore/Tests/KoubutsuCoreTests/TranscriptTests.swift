@@ -44,7 +44,7 @@ struct TranscriptTests {
             """)
         #expect(t.srt(.english).hasPrefix("1\n00:01:01,200 --> 00:01:04,200\nYou need a key.\n"))
         #expect(!t.srt(.english).contains("扉"))
-        #expect(t.csv().split(separator: "\n")[1] == "61.200,64.200,\"鍵が必要です\",\"You need a key.\",0.90")
+        #expect(t.csv().split(separator: "\n")[1] == "61.200,64.200,\"\",\"鍵が必要です\",\"You need a key.\",0.90")
     }
 
     @Test func seekBackwardsKeepsMediaOrder() {

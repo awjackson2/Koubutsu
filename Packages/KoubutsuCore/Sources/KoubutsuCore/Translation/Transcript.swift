@@ -10,6 +10,7 @@ public struct TranscriptEntry: Sendable, Hashable, Identifiable {
     public var end: Double?
     public var japanese: String
     public var english: String?
+    public var speaker: String?
     public var confidence: Float
     public var boundingBox: NormalizedRect
 }
@@ -28,7 +29,8 @@ public struct TranscriptBuilder: Sendable {
         let start = stable.firstSeenFrame.presentationTime.seconds
         close(trackID: stable.trackID, at: start)
         entries.append(TranscriptEntry(id: stable.id, trackID: stable.trackID, start: start, end: nil,
-                                       japanese: stable.text, english: nil, confidence: stable.confidence,
+                                       japanese: stable.text, english: nil, speaker: stable.speaker,
+                                       confidence: stable.confidence,
                                        boundingBox: stable.boundingBox))
         openByTrack[stable.trackID] = entries.count - 1
     }
@@ -79,7 +81,7 @@ public struct TranscriptBuilder: Sendable {
         for entry in resolved {
             let text: String
             switch language {
-            case .japanese: text = entry.japanese
+            case .japanese: text = entry.speaker.map { "【\($0)】\(entry.japanese)" } ?? entry.japanese
             case .english:
                 guard let english = entry.english else { continue }
                 text = english
@@ -94,10 +96,10 @@ public struct TranscriptBuilder: Sendable {
     /// CSV with a header row; fields quoted per RFC 4180.
     public func csv() -> String {
         func q(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
-        var lines = ["start_s,end_s,japanese,english,confidence"]
+        var lines = ["start_s,end_s,speaker,japanese,english,confidence"]
         for e in resolved {
             lines.append(String(format: "%.3f,%.3f,", e.start, e.end ?? e.start)
-                         + "\(q(e.japanese)),\(q(e.english ?? "")),"
+                         + "\(q(e.speaker ?? "")),\(q(e.japanese)),\(q(e.english ?? "")),"
                          + String(format: "%.2f", e.confidence))
         }
         return lines.joined(separator: "\n") + "\n"
