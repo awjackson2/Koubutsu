@@ -82,6 +82,8 @@ PROJ_RELEASE = dict(COMMON_PROJECT, **{
 
 APP = {
     "CODE_SIGN_STYLE": "Automatic",
+    "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+    "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
     "CURRENT_PROJECT_VERSION": "1",
     "ENABLE_PREVIEWS": "YES",
     "GENERATE_INFOPLIST_FILE": "YES",
@@ -94,7 +96,6 @@ APP = {
         "Koubutsu reads audio from an external USB capture device to play game audio.",
     "INFOPLIST_KEY_UIApplicationSceneManifest_Generation": "YES",
     "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents": "YES",
-    "INFOPLIST_KEY_UILaunchScreen_Generation": "YES",
     "INFOPLIST_KEY_UIStatusBarHidden": "YES",
     "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad":
         "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight "

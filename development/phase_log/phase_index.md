@@ -67,3 +67,4 @@ Line format:
 - **Phase 8.4.0** (2026-09-26) — [plan](phase_8.4.0_plan.md) · [log](phase_8.4.0_log.md) — Word card: furigana, romaji, senses, conjugation, kanji, sentence, voice, iPad dictionary.
 - **Phase 8.5.0** (2026-09-26) — [plan](phase_8.5.0_plan.md) · [log](phase_8.5.0_log.md) — Word bank with context, FSRS review, Anki export.
 - **Phase 8.6.0** (2026-09-26) — [plan](phase_8.6.0_plan.md) · [log](phase_8.6.0_log.md) — Furigana over the game's kanji; learning words underlined; known words bare.
+- **Phase 9.0.0** (2026-09-26) — [plan](phase_9.0.0_plan.md) — UI polish umbrella: Heisei VCR/HUD pixel identity (9.1.0–9.3.0).

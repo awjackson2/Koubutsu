@@ -7,6 +7,10 @@ struct KoubutsuApp: App {
     /// the CPU (Vision OCR on the simulator runs without the Neural Engine and is slow).
     private let isHostingTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 
+    init() {
+        K.applyUIKitAppearance()
+    }
+
     var body: some Scene {
         WindowGroup {
             if isHostingTests {
