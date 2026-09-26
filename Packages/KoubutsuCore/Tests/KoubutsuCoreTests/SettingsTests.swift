@@ -26,5 +26,11 @@ struct SettingsTests {
         let decoded = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
         #expect(decoded.ocrRate == .fps5)
         #expect(decoded.showOCRBoxes)
+        #expect(decoded.autoSwitchToCapture)
+    }
+
+    @Test func clampsVolume() throws {
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: Data(#"{"captureAudioVolume": 3}"#.utf8))
+        #expect(decoded.captureAudioVolume == 1)
     }
 }

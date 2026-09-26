@@ -36,6 +36,12 @@ public struct AppSettings: Sendable, Hashable, Codable {
     public var regionOfInterestMode: RegionOfInterestMode = .fullFrame
     public var customRegionOfInterest: NormalizedRect = .init(x: 0, y: 0.6, width: 1, height: 0.4)
     public var loopTestVideo: Bool = true
+    /// Switch to a USB capture device automatically when one is connected.
+    public var autoSwitchToCapture: Bool = true
+    /// Play the capture device's (UAC) audio through the iPad.
+    public var playCaptureAudio: Bool = true
+    /// Capture audio volume, 0...1.
+    public var captureAudioVolume: Double = 1.0
 
     public init() {}
 
@@ -72,6 +78,10 @@ public struct AppSettings: Sendable, Hashable, Codable {
         s.regionOfInterestMode = (try? c.decodeIfPresent(RegionOfInterestMode.self, forKey: .regionOfInterestMode)) ?? s.regionOfInterestMode
         s.customRegionOfInterest = try c.decodeIfPresent(NormalizedRect.self, forKey: .customRegionOfInterest) ?? s.customRegionOfInterest
         s.loopTestVideo = try c.decodeIfPresent(Bool.self, forKey: .loopTestVideo) ?? s.loopTestVideo
+        s.autoSwitchToCapture = try c.decodeIfPresent(Bool.self, forKey: .autoSwitchToCapture) ?? s.autoSwitchToCapture
+        s.playCaptureAudio = try c.decodeIfPresent(Bool.self, forKey: .playCaptureAudio) ?? s.playCaptureAudio
+        let volume = try c.decodeIfPresent(Double.self, forKey: .captureAudioVolume) ?? s.captureAudioVolume
+        s.captureAudioVolume = min(max(volume, 0), 1)
         self = s
     }
 }
