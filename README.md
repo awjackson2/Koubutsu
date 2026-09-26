@@ -31,6 +31,12 @@ panel); OCR, stabilization, caching, layout and all metrics are the real pipelin
 |---|---|---|
 | ![panel](docs/screenshots/ci13_panel_debug_dialogue.jpg) | ![title](docs/screenshots/ci13_panel_debug_title.jpg) | ![overlay bug](docs/screenshots/ci13_overlay_stale_menu_bug.jpg) |
 
+CI run 15, after the delivery-path crash fix (Phase 1.4.1): the app stays up for the whole 270 s session.
+
+| Dialogue with OCR boxes + debug | Title with OCR boxes | Overlay at a scene change (OCR lag on the simulator) |
+|---|---|---|
+| ![dialogue](docs/screenshots/ci15_panel_dialogue_boxes_debug.jpg) | ![title](docs/screenshots/ci15_panel_title_boxes.jpg) | ![lag](docs/screenshots/ci15_overlay_scene_change_lag.jpg) |
+
 ## Requirements
 
 - Xcode 26.x, iPadOS 26.0+ on a USB-C iPad.
