@@ -114,6 +114,10 @@ struct RootView: View {
         try? await Task.sleep(for: .seconds(delay))
         await toggleStudy()
         if let rect = options.studySelect { study.select(rect: rect) }
+        if let point = options.studyTap {
+            study.autoOpenCard = options.openCard
+            study.tap(at: point)
+        }
     }
 
     private func stageTapped() {
@@ -171,7 +175,7 @@ struct RootView: View {
         let translationController = model.translation
         return VStack(spacing: 0) {
             if study.isActive {
-                StudyPanel(session: study) { Task { await toggleStudy() } }
+                StudyPanel(session: study, store: model.dictionary.store) { Task { await toggleStudy() } }
             } else {
                 VideoTransportBar(model: model, showingImporter: $showingImporter)
                 if model.settings.displayMode != .overlay {

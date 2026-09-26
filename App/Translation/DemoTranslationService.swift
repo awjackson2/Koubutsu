@@ -86,6 +86,10 @@ struct LaunchOptions {
     var studyAfter: Double?
     /// Then select this normalized rect: `x,y,w,h`.
     var studySelect: NormalizedRect?
+    /// Or tap this normalized point: `x,y`.
+    var studyTap: NormalizedPoint?
+    /// Open the word card for the tapped word.
+    var openCard = false
 
     static let current = LaunchOptions(arguments: CommandLine.arguments)
 
@@ -103,6 +107,11 @@ struct LaunchOptions {
                 if arg.hasPrefix("--select-video=") { selectVideo = String(arg.dropFirst("--select-video=".count)) }
                 if arg.hasPrefix("--start-at=") { startAt = Double(arg.dropFirst("--start-at=".count)) }
                 if arg.hasPrefix("--study-after=") { studyAfter = Double(arg.dropFirst("--study-after=".count)) }
+                if arg == "--open-card" { openCard = true }
+                if arg.hasPrefix("--study-tap=") {
+                    let v = arg.dropFirst("--study-tap=".count).split(separator: ",").compactMap { Double($0) }
+                    if v.count == 2 { studyTap = NormalizedPoint(x: v[0], y: v[1]) }
+                }
                 if arg.hasPrefix("--study-select=") {
                     let v = arg.dropFirst("--study-select=".count).split(separator: ",").compactMap { Double($0) }
                     if v.count == 4 { studySelect = NormalizedRect(x: v[0], y: v[1], width: v[2], height: v[3]) }

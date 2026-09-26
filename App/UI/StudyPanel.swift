@@ -4,7 +4,9 @@ import SwiftUI
 /// Bottom panel while studying: what is selected, where it came from, and its translation.
 struct StudyPanel: View {
     let session: StudySession
+    let store: (any DictionaryStore)?
     let done: () -> Void
+    @State private var card: WordCardContent?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -32,7 +34,14 @@ struct StudyPanel: View {
                             Text(context(line)).font(.title3)
                         }
                         if let best = session.words.first {
-                            WordSummary(result: best)
+                            Button { openCard(session.words) } label: {
+                                HStack(alignment: .firstTextBaseline) {
+                                    WordSummary(result: best)
+                                    Spacer()
+                                    Image(systemName: "chevron.right.circle").foregroundStyle(.cyan)
+                                }
+                            }
+                            .buttonStyle(.plain)
                             if session.words.count > 1 {
                                 Text("Also: " + session.words.dropFirst().prefix(4)
                                     .map { "\($0.headword)【\($0.reading)】" }.joined(separator: "  "))
@@ -42,7 +51,8 @@ struct StudyPanel: View {
                         if !session.tokens.isEmpty {
                             ForEach(Array(session.tokens.enumerated()), id: \.offset) { _, token in
                                 if let best = token.results.first {
-                                    WordSummary(result: best, compact: true)
+                                    Button { openCard(token.results) } label: { WordSummary(result: best, compact: true) }
+                                        .buttonStyle(.plain)
                                 }
                             }
                         }
@@ -61,8 +71,25 @@ struct StudyPanel: View {
         }
         .padding()
         .frame(height: 210, alignment: .top)
+        .onChange(of: session.words.first?.id) { _, id in
+            if id != nil, session.autoOpenCard {
+                session.autoOpenCard = false
+                openCard(session.words)
+            }
+        }
+        .sheet(item: $card) { content in
+            WordCardView(content: content, store: store)
+                .presentationDetents([.medium, .large])
+        }
         .background(Color(white: 0.07))
         .foregroundStyle(.white)
+    }
+
+    private func openCard(_ results: [LookupResult]) {
+        guard !results.isEmpty else { return }
+        card = WordCardContent(results: results, sentence: session.spans.first?.lineText,
+                               sentenceTranslation: session.translatedSource == session.spans.first?.lineText
+                                   ? session.translation : nil)
     }
 
     private var hint: String {

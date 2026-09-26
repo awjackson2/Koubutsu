@@ -30,6 +30,9 @@ final class StudySession {
     /// Words of a dragged phrase.
     private(set) var tokens: [LookupToken] = []
 
+    /// Open the word card as soon as the tapped word is looked up (automation screenshots).
+    var autoOpenCard = false
+
     @ObservationIgnored private var lookup: DictionaryLookup?
     @ObservationIgnored private var lookupTask: Task<Void, Never>?
 
