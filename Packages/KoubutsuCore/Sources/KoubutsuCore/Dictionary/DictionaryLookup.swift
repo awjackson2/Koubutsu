@@ -8,12 +8,16 @@ public struct LookupResult: Sendable, Hashable, Identifiable {
     public var dictionaryForm: String
     /// Conjugation steps from the dictionary form, innermost first (e.g. causative, passive or potential, past).
     public var reasons: [String]
+    /// See `Deinflection.specificity`.
+    public var specificity: Int
 
-    public init(entry: DictionaryEntry, matched: String, dictionaryForm: String, reasons: [String]) {
+    public init(entry: DictionaryEntry, matched: String, dictionaryForm: String, reasons: [String],
+                specificity: Int = 0) {
         self.entry = entry
         self.matched = matched
         self.dictionaryForm = dictionaryForm
         self.reasons = reasons
+        self.specificity = specificity
     }
 
     /// The kanji form matching the text, or the entry's first visible kanji form, or nil for kana words.
@@ -78,7 +82,7 @@ public struct DictionaryLookup: Sendable {
                     guard candidate.accepts(WordType.of(partsOfSpeech: entry.allPartsOfSpeech)),
                           !Self.isKatakanaOnlyMatch(entry, hiraganaTerm: candidate.term) else { continue }
                     let result = LookupResult(entry: entry, matched: prefix, dictionaryForm: candidate.term,
-                                              reasons: candidate.reasons)
+                                              reasons: candidate.reasons, specificity: candidate.specificity)
                     if let existing = best[entry.id], !Self.isBetter(result, than: existing) { continue }
                     best[entry.id] = result
                 }
@@ -164,6 +168,7 @@ public struct DictionaryLookup: Sendable {
     static func isBetter(_ a: LookupResult, than b: LookupResult) -> Bool {
         if a.matched.count != b.matched.count { return a.matched.count > b.matched.count }
         if a.reasons.count != b.reasons.count { return a.reasons.count < b.reasons.count }
+        if a.specificity != b.specificity { return a.specificity > b.specificity }
         let aWritten = isWrittenAsMatched(a), bWritten = isWrittenAsMatched(b)
         if aWritten != bWritten { return aWritten }
         let aExact = a.entry.kanji.contains { $0.text == a.matched } || a.entry.readings.contains { $0.text == a.matched }

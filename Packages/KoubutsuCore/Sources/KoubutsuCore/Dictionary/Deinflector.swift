@@ -42,11 +42,15 @@ public struct Deinflection: Sendable, Hashable {
     public var types: WordType?
     /// Transformations from the dictionary form to the input, outermost last (e.g. ["causative", "passive", "past"]).
     public var reasons: [String]
+    /// Characters of inflected suffix the rules matched; more specific rules (行った → 行く) beat general
+    /// ones (った → う) when both apply.
+    public var specificity: Int
 
-    public init(term: String, types: WordType?, reasons: [String]) {
+    public init(term: String, types: WordType?, reasons: [String], specificity: Int = 0) {
         self.term = term
         self.types = types
         self.reasons = reasons
+        self.specificity = specificity
     }
 
     /// Whether an entry with `entryTypes` can be this candidate.
@@ -94,7 +98,8 @@ public struct Deinflector: Sendable {
                     guard !term.isEmpty else { continue }
                     let key = "\(term)|\(rule.to.rawValue)|\(current.reasons.count)"
                     guard seen.insert(key).inserted else { continue }
-                    results.append(Deinflection(term: term, types: rule.to, reasons: [rule.reason] + current.reasons))
+                    results.append(Deinflection(term: term, types: rule.to, reasons: [rule.reason] + current.reasons,
+                                                specificity: current.specificity + length))
                 }
             }
         }

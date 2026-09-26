@@ -33,6 +33,7 @@ let fixtureStore = InMemoryDictionaryStore(entries: [
     entry(21, ["害"], ["がい"], ["n"], ["harm"], rank: 10),
     entry(22, [], ["る"], ["suf"], ["verb-forming suffix"]),
     entry(23, [], ["ガイル"], ["n"], ["Guile"]),
+    entry(24, ["行う"], ["おこなう"], ["v5u", "vt"], ["to perform"], rank: 1),
 ])
 
 struct DictionaryLookupTests {
@@ -59,6 +60,7 @@ struct DictionaryLookupTests {
         let benkyou = lookup.lookup("勉強しました").first
         #expect(benkyou?.entry.id == 18 && benkyou?.matched == "勉強しました")
         #expect(lookup.lookup("行った").first?.entry.id == 17)
+        #expect(lookup.word(at: "行ったことがある").first?.entry.id == 17)
     }
 
     @Test func kanaWordsUseTheirKanaHeadword() {
