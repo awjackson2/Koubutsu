@@ -20,7 +20,9 @@ final class AppModel {
         }
     }
 
-    var settings = AppSettings()
+    var settings = AppSettings() {
+        didSet { processingTap.setRate(settings.ocrRate.rawValue) }
+    }
     private(set) var mediaItems: [MediaItem] = []
     private(set) var selection: SourceSelection?
     private(set) var sourceState: VideoSourceState = .idle
@@ -33,6 +35,8 @@ final class AppModel {
     let renderer: SampleBufferRenderer
     let pipelineMetrics: PipelineMetrics
     let pipeline: FramePipeline
+    /// Sampled, backpressured frames for OCR. Consumed from Phase 1.5.0.
+    let processingTap: SampledFrameTap
 
     private var source: (any VideoSource<VideoFrame>)?
     private var metricsTask: Task<Void, Never>?
@@ -42,6 +46,8 @@ final class AppModel {
         renderer = SampleBufferRenderer()
         pipelineMetrics = PipelineMetrics(clock: clock)
         pipeline = FramePipeline(renderer: renderer, metrics: pipelineMetrics, clock: clock)
+        processingTap = SampledFrameTap(rate: settings.ocrRate.rawValue, metrics: pipelineMetrics)
+        pipeline.setProcessingTap(processingTap)
         refreshMedia()
         selection = MediaLibrary.defaultItem.map { .media($0) }
     }

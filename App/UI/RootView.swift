@@ -13,6 +13,12 @@ struct RootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.black)
                 .overlay(alignment: .center) { sourceMessage }
+            if model.settings.showDebugStatistics {
+                DebugPanel(model: model)
+                    .padding(.horizontal)
+                    .padding(.vertical, 6)
+                    .background(Color(white: 0.08))
+            }
             ControlBar(model: model, showingImporter: $showingImporter)
         }
         .background(Color.black)
