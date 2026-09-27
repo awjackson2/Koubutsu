@@ -117,6 +117,8 @@ The project file is generated: after changing targets/settings edit `Tools/gen_x
 - Core logic (Linux or macOS): `swift test --package-path Packages/KoubutsuCore`
 - App (macOS): `Tools/ci_simulator_test.sh test`
 - CI: `.github/workflows/core-linux.yml`, `.github/workflows/ios.yml` (also produces an SDK report artifact)
+- Screenshots (on demand, macOS simulator): `.github/workflows/screenshots.yml`, run from the Actions tab; the
+  `series` input limits the configurations (e.g. `study,card`), empty captures all nine
 
 ## Layout
 

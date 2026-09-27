@@ -73,3 +73,4 @@ Line format:
 - **Phase 9.3.0** (2026-09-26) — [plan](phase_9.3.0_plan.md) · [log](phase_9.3.0_log.md) — VCR boot sequence, freeze scan, bracket snap, blinking cursors; Reduce Motion aware.
 - **Phase 9.4.0** (2026-09-26) — [plan](phase_9.4.0_plan.md) · [log](phase_9.4.0_log.md) — Surveillance-monitor housing around the video outside full screen.
 - **Phase 9.4.1** (2026-09-26) — [log](phase_9.4.1_log.md) — Monitor header clears the status bar; housing fills the window.
+- **Phase 9.4.2** (2026-09-27) — [log](phase_9.4.2_log.md) — Screenshot CI runs on demand only, optionally for chosen screens.
