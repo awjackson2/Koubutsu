@@ -56,11 +56,25 @@ extension RootView {
                     panels(translationHeight: nil, recognizedHeight: nil)
                 }
                 .frame(minHeight: panelMinHeight)
-                // Housing filler: the monitor housing drawn behind the chrome shows through here.
-                if !isFullScreen && !showsFlexiblePanel { Spacer(minLength: 0) }
+                // Housing filler: the info deck when there is room (10.7.0), else the monitor housing drawn
+                // behind the chrome shows through here.
+                if !isFullScreen && !showsFlexiblePanel { portraitDeckFiller }
                 controlBar
             }
         }
         .simultaneousGesture(TapGesture().onEnded { scheduleChromeHide() })
+    }
+
+    /// The flexible space between the transport and control bars (10.7.0): the portrait info deck when it is at
+    /// least `VideoStageLayout.portraitDeckMinHeight` tall, otherwise empty so the housing shows through. Like the
+    /// `Spacer` it replaces, the reader takes whatever height the bars leave.
+    private var portraitDeckFiller: some View {
+        GeometryReader { filler in
+            if VideoStageLayout.showsPortraitDeck(fillerHeight: Double(filler.size.height)) {
+                PortraitDeck(model: model, deck: deck, openReview: { showingReview = true })
+                    .frame(width: filler.size.width, height: filler.size.height)
+                    .transition(.opacity)
+            }
+        }
     }
 }

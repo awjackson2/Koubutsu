@@ -144,6 +144,21 @@ public enum VideoStageLayout {
         regionHeight >= compactPanelMinHeight * 2 + compactBarsAllowance ? compactPanelMinHeight : 0
     }
 
+    // MARK: Portrait info deck (10.7.0)
+
+    /// Height of the deck's tab strip (one 44 pt row of targets).
+    public static let portraitDeckTabHeight = 44.0
+
+    /// Smallest filler that gets the deck: the tab strip plus about two transcript rows. Below this the housing
+    /// shows through as before.
+    public static let portraitDeckMinHeight = 120.0
+
+    /// Whether the compact portrait housing filler (the space between the transport and control bars when no
+    /// scrolling panel is enabled) is tall enough for the info deck.
+    public static func showsPortraitDeck(fillerHeight: Double) -> Bool {
+        fillerHeight.isFinite && fillerHeight >= portraitDeckMinHeight
+    }
+
     /// As `framed`, but centred vertically in the available height as well (full screen in compact portrait).
     public static func centered(containerWidth: Double, containerHeight: Double, insets: StageInsets = .zero,
                                 aspect: Double = defaultAspect) -> PlaneRect {
