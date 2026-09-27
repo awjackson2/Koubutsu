@@ -78,8 +78,14 @@ Roadmap checklist:
                compact widths; Dynamic Type up to the accessibility sizes in the sheets; VoiceOver order and
                labels outside the bars; 44 pt targets throughout.            deps: 10.2.0        risk: low
 - [x] 10.3.1 — (Patch) layouts read the real top safe-area inset (portrait cleared the Dynamic Island)
+- [x] 10.3.2 — (Patch) outer layout reader stays inside the safe area (10.3.1 follow-up)
+- [ ] 10.7.0 — (amendment, user request) Portrait info deck in the empty space: LOG (live dialogue), WORDS
+               (on-screen words with readings and bank state), SESSION (reading stats, reviews due, pipeline
+               health)                                                        deps: 10.3.0        risk: med
+- [ ] 10.8.0 — (amendment, user request) Study navigator: arrow controls for words (◀ ▶), lines (▲ ▼) and
+               granular character extend/shrink (＋ −); hardware arrow keys   deps: 10.5.0        risk: med
 ```
-Minors 10.7 to 10.9 are left free for follow-ups found in on-device testing (for example thermals and battery
+Minor 10.9 is left free for follow-ups found in on-device testing (for example thermals and battery
 during long play on iPhone, or a Picture in Picture view). These are candidates, not commitments.
 
 ## Test Plan
