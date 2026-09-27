@@ -20,6 +20,8 @@ struct RootView: View {
     @State var peeking = false
     @State var study = StudySession()
     @State var readingAids = ReadingAidModel()
+    /// Compact portrait info deck: reading session and on-screen words (10.7.0).
+    @State var deck = PortraitDeckModel()
     @State var booting = !LaunchOptions.current.skipBoot
     /// A file source was playing when study mode froze it.
     @State var resumeAfterStudy = false
