@@ -1,6 +1,6 @@
 # Architecture
 
-Last synced: Phase 10.6.0 (2026-09-27)
+Last synced: Phase 10.8.0 (2026-09-27)
 
 ## Layers
 
@@ -104,6 +104,15 @@ compact portrait has a 24 pt header and 6 pt bezels; compact landscape stays ins
 - Compact landscape (10.4.0): stage at full height inside the safe area with a hairline border; chrome is an
   overlay revealed by a tap (or the CONTROLS tab) and hidden after 4 s (not while VoiceOver runs); panels share
   `overlayPanelBudget` (bars + panels ≤ 60 % of the stage height).
+
+Portrait info deck (10.7.0, `PortraitDeck.swift`, `PortraitDeckModel.swift`): when no scrolling panel is on and
+the gap between the bars is at least `VideoStageLayout.portraitDeckMinHeight`, it shows LOG (dialogue history),
+WORDS (`DeckWords` from `DictionaryLookup.segment` of the on-screen Japanese, debounced off the main actor) and
+SESSION (`ReadingSessionStats`, metrics meters).
+
+Study navigator (10.8.0): `StudyNavigator` (KoubutsuCore) steps the selection by word, line and character over the
+Japanese lines in reading order (words from segmentation; per-character until segmentation finishes).
+`StudySession.move(_:)` feeds the tap/drag selection paths; the pad sits in `StudyPanel`; arrow keys on iPad.
 
 Sheets (10.6.0) measure their own width (`SheetLayout`, `App/UI/SheetSupport.swift`) and stack rows below 500 pt or
 at accessibility text sizes.
