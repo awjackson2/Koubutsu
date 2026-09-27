@@ -11,7 +11,10 @@ struct WordBankView: View {
     @State private var search = ""
     @State private var card: WordCardContent?
     @State private var exporting = false
+    @State private var narrow = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var words: [SavedWord] {
         let all = bank.bank.words.sorted { $0.created > $1.created }
@@ -22,44 +25,40 @@ struct WordBankView: View {
         }
     }
 
+    /// Narrow sheet (iPhone portrait) or accessibility text sizes: rows and controls stack.
+    private var stacked: Bool { narrow || dynamicTypeSize.isAccessibilitySize }
+    /// Short sheet (iPhone landscape) or accessibility text sizes: the search controls scroll with the list, so the
+    /// list keeps room on screen.
+    private var controlsScroll: Bool { verticalSizeClass == .compact || dynamicTypeSize.isAccessibilitySize }
+
     var body: some View {
         VStack(spacing: 0) {
             KSheetHeader(title: "Word bank", subtitle: "\(bank.bank.words.count) SAVED · \(dueCount) DUE") {
                 HStack(spacing: 10) {
-                    Button { exporting = true } label: { KIconLabel(icon: "export", title: "Anki", size: 16) }
+                    Button { exporting = true } label: { KIconLabel(icon: "export", title: stacked ? nil : "Anki", size: 16) }
                         .buttonStyle(.k(.secondary))
                         .disabled(bank.bank.words.isEmpty)
-                    Button("Done") { dismiss() }.buttonStyle(.k(.secondary))
+                        .accessibilityLabel("Export to Anki")
+                    Button { dismiss() } label: { Text("Done").kButtonTarget() }.buttonStyle(.k(.secondary))
                 }
             }
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
-                    KSearchField(text: $search, prompt: "SEARCH WORDS, READINGS, MEANINGS")
-                    Button {
-                        dismiss()
-                        startReview()
-                    } label: {
-                        KIconLabel(icon: "review", title: dueCount == 0 ? "Nothing due" : "Review \(dueCount)", size: 16)
-                    }
-                    .buttonStyle(.k(.primary))
-                    .disabled(dueCount == 0)
-                }
-                KSectionHeader(title: "Saved", index: words.count)
+            if controlsScroll {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        if words.isEmpty {
-                            Text("SAVE WORDS FROM A WORD CARD IN STUDY MODE (S)_")
-                                .font(K.osd(15)).foregroundStyle(K.ink.opacity(0.5)).padding(.vertical, 20)
-                        }
-                        ForEach(words) { word in
-                            row(word)
-                            Rectangle().fill(K.ink.opacity(0.15)).frame(height: 1)
-                        }
+                    VStack(alignment: .leading, spacing: 14) {
+                        controls
+                        list
                     }
+                    .padding(narrow ? 16 : 20)
                 }
+            } else {
+                VStack(alignment: .leading, spacing: 14) {
+                    controls
+                    ScrollView { list }
+                }
+                .padding(narrow ? 16 : 20)
             }
-            .padding(20)
         }
+        .trackingNarrowWidth($narrow)
         .kSheet()
         .kTexture(grain: 0.8, scanlines: 0)
         .fileExporter(isPresented: $exporting, document: TextFile(text: AnkiExport.tsv(bank.bank.words)),
@@ -71,43 +70,139 @@ struct WordBankView: View {
 
     private var dueCount: Int { bank.bank.due(at: Date()).count }
 
+    @ViewBuilder private var controls: some View {
+        if stacked {
+            VStack(alignment: .leading, spacing: 12) {
+                KSearchField(text: $search, prompt: "SEARCH WORDS")
+                reviewButton
+            }
+        } else {
+            HStack(spacing: 12) {
+                KSearchField(text: $search, prompt: "SEARCH WORDS, READINGS, MEANINGS")
+                reviewButton
+            }
+        }
+        KSectionHeader(title: "Saved", index: words.count).kHeading()
+    }
+
+    private var reviewButton: some View {
+        Button {
+            dismiss()
+            startReview()
+        } label: {
+            KIconLabel(icon: "review", title: dueCount == 0 ? "Nothing due" : "Review \(dueCount)", size: 16)
+                .frame(maxWidth: stacked ? .infinity : nil)
+        }
+        .buttonStyle(.k(.primary))
+        .disabled(dueCount == 0)
+    }
+
+    private var list: some View {
+        LazyVStack(alignment: .leading, spacing: 0) {
+            if words.isEmpty {
+                Text("SAVE WORDS FROM A WORD CARD IN STUDY MODE (S)_")
+                    .font(K.osd(15)).foregroundStyle(K.ink.opacity(0.5)).padding(.vertical, 20)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            ForEach(words) { word in
+                if stacked { stackedRow(word) } else { row(word) }
+                Rectangle().fill(K.ink.opacity(0.15)).frame(height: 1)
+            }
+        }
+    }
+
+    /// iPad row: thumbnail, text and due date in one line, actions at the end.
     private func row(_ word: SavedWord) -> some View {
         HStack(alignment: .center, spacing: 14) {
             Button { open(word) } label: {
                 HStack(alignment: .center, spacing: 14) {
-                    if let image = bank.image(for: word) {
-                        Image(uiImage: image).resizable().scaledToFill()
-                            .frame(width: 110, height: 44).clipped()
-                            .grayscale(1).contrast(1.3)
-                            .kFrame(K.red, tick: 6)
-                    }
+                    thumbnail(word, width: 110, height: 44)
                     VStack(alignment: .leading, spacing: 3) {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text(word.headword).font(.title3.weight(.semibold))
-                            if word.reading != word.headword { Text(word.reading).foregroundStyle(K.ink.opacity(0.55)) }
-                            if word.isKnown { KTag(text: "Known", color: K.ink) }
-                        }
-                        Text((word.meanings.first ?? "").uppercased()).font(K.osd(14)).lineLimit(1)
-                        if let sentence = word.sentence {
-                            Text(sentence).font(.caption).foregroundStyle(K.ink.opacity(0.55)).lineLimit(1)
-                        }
+                        HStack(alignment: .firstTextBaseline, spacing: 8) { headwordLine(word) }
+                        meaningLines(word, lines: 1)
                     }
                     Spacer(minLength: 8)
-                    if !word.isKnown {
-                        Text(IntervalFormat.dueLabel(word.card.due).uppercased())
-                            .font(K.osd(13))
-                            .foregroundStyle(word.card.due <= Date() ? K.red : K.ink.opacity(0.55))
-                    }
+                    dueLabel(word)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            Button(word.isKnown ? "Learn" : "Known") { bank.setKnown(!word.isKnown, for: word) }
-                .buttonStyle(.k(.ghost))
-            Button { bank.delete(word) } label: { PixelIcon("trash", size: 16) }
-                .buttonStyle(.k(.ghost))
+            .accessibilityHint("Opens the word card")
+            knownButton(word)
+            deleteButton(word)
         }
         .padding(.vertical, 10)
+    }
+
+    /// Narrow row: a smaller thumbnail above the text, the actions in a column at the side.
+    private func stackedRow(_ word: SavedWord) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Button { open(word) } label: {
+                VStack(alignment: .leading, spacing: 6) {
+                    thumbnail(word, width: 88, height: 35)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) { headwordLine(word) }
+                        VStack(alignment: .leading, spacing: 2) { headwordLine(word) }
+                    }
+                    meaningLines(word, lines: 2)
+                    dueLabel(word)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens the word card")
+            VStack(alignment: .trailing, spacing: 0) {
+                knownButton(word)
+                deleteButton(word)
+            }
+        }
+        .padding(.vertical, 10)
+    }
+
+    @ViewBuilder private func thumbnail(_ word: SavedWord, width: CGFloat, height: CGFloat) -> some View {
+        if let image = bank.image(for: word) {
+            Image(uiImage: image).resizable().scaledToFill()
+                .frame(width: width, height: height).clipped()
+                .grayscale(1).contrast(1.3)
+                .kFrame(K.red, tick: 6)
+                .accessibilityHidden(true)
+        }
+    }
+
+    @ViewBuilder private func headwordLine(_ word: SavedWord) -> some View {
+        Text(word.headword).font(.title3.weight(.semibold))
+        if word.reading != word.headword { Text(word.reading).foregroundStyle(K.ink.opacity(0.55)) }
+        if word.isKnown { KTag(text: "Known", color: K.ink) }
+    }
+
+    @ViewBuilder private func meaningLines(_ word: SavedWord, lines: Int) -> some View {
+        Text((word.meanings.first ?? "").uppercased()).font(K.osd(14)).lineLimit(lines)
+        if let sentence = word.sentence {
+            Text(sentence).font(.caption).foregroundStyle(K.ink.opacity(0.55)).lineLimit(lines)
+        }
+    }
+
+    @ViewBuilder private func dueLabel(_ word: SavedWord) -> some View {
+        if !word.isKnown {
+            Text(IntervalFormat.dueLabel(word.card.due).uppercased())
+                .font(K.osd(13))
+                .foregroundStyle(word.card.due <= Date() ? K.red : K.ink.opacity(0.55))
+        }
+    }
+
+    private func knownButton(_ word: SavedWord) -> some View {
+        Button { bank.setKnown(!word.isKnown, for: word) } label: {
+            Text(word.isKnown ? "Learn" : "Known").kButtonTarget()
+        }
+        .buttonStyle(.k(.ghost))
+        .accessibilityHint(word.isKnown ? "Puts \(word.headword) back into review" : "Marks \(word.headword) as known")
+    }
+
+    private func deleteButton(_ word: SavedWord) -> some View {
+        Button { bank.delete(word) } label: { PixelIcon("trash", size: 16).kButtonTarget() }
+            .buttonStyle(.k(.ghost))
+            .accessibilityLabel("Delete \(word.headword)")
     }
 
     private func open(_ word: SavedWord) {
