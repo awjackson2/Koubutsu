@@ -381,7 +381,7 @@ private struct DeckWordsPage: View {
     private func open(_ word: DeckWord) {
         let sentence = deck.sentence(for: word)
         card = WordCardContent(results: word.results, sentence: sentence,
-                               sentenceTranslation: sentence.flatMap { entry(for: $0)?.translation })
+                               sentenceTranslation: sentence.flatMap { historyEntry(for: $0)?.translation })
     }
 
     private func save(_ word: DeckWord) {
@@ -392,13 +392,13 @@ private struct DeckWordsPage: View {
     /// Saves with the line it came from, its translation and its presentation time (from the dialogue history,
     /// rule 4); no line crop outside study mode.
     private func save(_ result: LookupResult, sentence: String?) {
-        let entry = sentence.flatMap { entry(for: $0) }
-        model.wordBank.save(result, sentence: sentence, translation: entry?.translation,
+        let line = sentence.flatMap { historyEntry(for: $0) }
+        model.wordBank.save(result, sentence: sentence, translation: line?.translation,
                             source: model.selection?.label,
-                            mediaTime: entry?.firstSeenFrame.presentationTime.seconds, image: nil)
+                            mediaTime: line?.firstSeenFrame.presentationTime.seconds, image: nil)
     }
 
-    private func entry(for sentence: String) -> DialogueEntry? {
+    private func historyEntry(for sentence: String) -> DialogueEntry? {
         model.translation.history.entries.last { $0.source == sentence }
     }
 }
