@@ -46,6 +46,25 @@ struct OCRFixtureTests {
         #expect(obs2.boundingBox.iou(line2.box) >= 0.5, "box \(obs2.boundingBox) vs \(line2.box)")
     }
 
+    /// Study mode: one box per character, inside the line, left to right; a tap on a character's box selects it.
+    @Test func studyConfigurationReturnsCharacterBoxes() async throws {
+        let checkpoint = try #require(manifest.checkpoint("dialogue_line1"))
+        let frame = try await ClipFrameReader.frame(at: checkpoint.sampleTime, in: clipURL)
+        let result = try await service.recognize(frame, configuration: .study)
+        let line = try #require(result.observations.first { squashed($0.text).contains("強い敵") },
+                                "got: \(result.observations.map(\.text))")
+        let boxes = try #require(line.characterBoxes, "no character boxes for \(line.text)")
+        #expect(boxes.count == line.text.count)
+        let expanded = NormalizedRect(x: line.boundingBox.x - 0.01, y: line.boundingBox.y - 0.02,
+                                      width: line.boundingBox.width + 0.02, height: line.boundingBox.height + 0.04)
+        #expect(boxes.allSatisfy { expanded.intersection($0) != nil })
+        #expect(zip(boxes, boxes.dropFirst()).allSatisfy { $0.midX <= $1.midX + 1e-6 })
+        let index = try #require(Array(line.text).firstIndex(of: "敵"))
+        let hit = StudySelection(observations: [line])
+            .character(at: NormalizedPoint(x: boxes[index].midX, y: boxes[index].midY))
+        #expect(hit?.text == "敵")
+    }
+
     @Test func regionOfInterestResultsMapToFullFrame() async throws {
         let (checkpoint, result) = try await recognize("dialogue_line2", roi: AppSettings.dialogueRegion)
         let line2 = try #require(checkpoint.expected.first)

@@ -48,6 +48,8 @@ final class AppModel {
     /// Sampled, backpressured frames for OCR. Consumed from Phase 1.5.0.
     let processingTap: SampledFrameTap
     let ocrService = VisionOCRService()
+    let dictionary = DictionaryProvider()
+    let wordBank = WordBankStore()
     let translation: TranslationController
     let performance = PerformanceMonitor()
     private(set) var benchmarkReport: String?
@@ -106,6 +108,7 @@ final class AppModel {
             onError: { [weak self] error in self?.ocrStatus = error.description })
         Task { await checkOCRSupport() }
         Task { await translation.refreshAvailability() }
+        Task { await dictionary.load() }
     }
 
     private func checkOCRSupport() async {
@@ -293,6 +296,23 @@ final class AppModel {
         await control.seek(to: seconds)
         latestOCR = nil
         translation.reset()
+        playback = await control.playbackStatus()
+    }
+
+    /// Pauses a file source for study mode. Returns whether it was playing (to resume afterwards).
+    func pauseForStudy() async -> Bool {
+        guard let control = playbackControl else { return false }
+        let playing = await control.playbackStatus().isPlaying
+        if playing {
+            await control.pause()
+            playback = await control.playbackStatus()
+        }
+        return playing
+    }
+
+    func resumeAfterStudy() async {
+        guard let control = playbackControl else { return }
+        await control.play()
         playback = await control.playbackStatus()
     }
 

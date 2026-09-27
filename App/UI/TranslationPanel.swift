@@ -11,16 +11,16 @@ struct TranslationPanel: View {
         VStack(alignment: .leading, spacing: 10) {
             if let message = controller.statusMessage {
                 HStack {
-                    Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
-                    Text(message).font(.callout)
+                    KTag(text: "Notice", filled: true)
+                    Text(message).font(K.osd(14))
                     if controller.availability == .needsDownload {
                         Button("Download") { controller.requestDownload() }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.k(.primary))
                     }
                 }
             }
             if controller.displayed.isEmpty {
-                Text("Waiting for Japanese text…").foregroundStyle(.secondary)
+                Text("WAITING FOR JAPANESE TEXT_").font(K.osd(14)).foregroundStyle(K.paper.opacity(0.55))
             }
             ForEach(controller.displayed) { item in
                 VStack(alignment: .leading, spacing: 2) {
@@ -33,13 +33,13 @@ struct TranslationPanel: View {
                 }
             }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(K.paper)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func line(_ label: String, _ content: some View) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(label).font(.caption.bold()).foregroundStyle(.secondary).frame(width: 24, alignment: .leading)
+            Text(label).font(K.osd(12)).foregroundStyle(K.red).frame(width: 24, alignment: .leading)
             content
         }
     }
@@ -49,20 +49,20 @@ struct TranslationPanel: View {
             switch item.status {
             case .translating:
                 if let previous = item.previousTranslation {
-                    Text(previous).font(.title3).foregroundStyle(.secondary)
+                    Text(previous).font(K.osd(18)).foregroundStyle(.secondary)
                 } else {
                     Text("…").foregroundStyle(.secondary)
                 }
             case .translated(let text, let fromCache, let latency):
                 HStack(alignment: .firstTextBaseline) {
-                    Text(text).font(.title3)
-                    Text(fromCache ? "cache" : String(format: "%.0f ms", latency * 1000))
-                        .font(.caption2.monospaced()).foregroundStyle(.secondary)
+                    Text(text).font(K.osd(18))
+                    Text(fromCache ? "CACHE" : String(format: "%.0fMS", latency * 1000))
+                        .font(K.osd(11)).foregroundStyle(K.paper.opacity(0.5))
                 }
             case .failed(let reason):
-                Text(reason).foregroundStyle(.orange).font(.callout)
+                Text(reason).foregroundStyle(K.red).font(K.osd(13))
             case .unavailable:
-                Text("translation unavailable").foregroundStyle(.secondary).font(.callout)
+                Text("TRANSLATION UNAVAILABLE").foregroundStyle(K.paper.opacity(0.55)).font(K.osd(13))
             }
         }
     }

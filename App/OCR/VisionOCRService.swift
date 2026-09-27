@@ -88,6 +88,10 @@ struct VisionOCRService: OCRService {
         if let regionOfInterest {
             quad = regionOfInterest.denormalizing(quad)
         }
+        var characterBoxes: [KoubutsuCore.NormalizedRect]?
+        if configuration.characterBoxes {
+            characterBoxes = Self.characterBoxes(best, text: text, regionOfInterest: regionOfInterest)
+        }
         return KoubutsuCore.RecognizedTextObservation(
             id: observation.uuid,
             text: text,
@@ -95,6 +99,31 @@ struct VisionOCRService: OCRService {
             boundingBox: quad.boundingRect,
             quad: quad,
             candidates: candidates.map { .init(text: $0.string, confidence: $0.confidence) },
-            frame: frame)
+            frame: frame,
+            characterBoxes: characterBoxes)
+    }
+
+    /// One box per character of `text` (the trimmed candidate string) via `RecognizedText.boundingBox(for:)`.
+    /// Nil if any character has no box, so callers fall back to proportional layout.
+    static func characterBoxes(_ candidate: Vision.RecognizedText, text: String,
+                               regionOfInterest: KoubutsuCore.NormalizedRect?) -> [KoubutsuCore.NormalizedRect]? {
+        let string = candidate.string
+        guard let start = string.range(of: text)?.lowerBound else { return nil }
+        var boxes: [KoubutsuCore.NormalizedRect] = []
+        var index = start
+        for _ in text {
+            let next = string.index(after: index)
+            guard let box = try? candidate.boundingBox(for: index..<next) else { return nil }
+            func point(_ p: Vision.NormalizedPoint) -> KoubutsuCore.NormalizedPoint {
+                KoubutsuCore.NormalizedPoint(bottomLeftOriginX: Double(p.x), y: Double(p.y))
+            }
+            var quad = KoubutsuCore.NormalizedQuad(topLeft: point(box.topLeft), topRight: point(box.topRight),
+                                                   bottomRight: point(box.bottomRight),
+                                                   bottomLeft: point(box.bottomLeft))
+            if let regionOfInterest { quad = regionOfInterest.denormalizing(quad) }
+            boxes.append(quad.boundingRect)
+            index = next
+        }
+        return boxes
     }
 }

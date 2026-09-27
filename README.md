@@ -1,5 +1,7 @@
 # Koubutsu
 
+<p align="center"><img src="docs/art/cover.png" width="420" alt="Koubutsu cover art"></p>
+
 An iPad app that turns the iPad into a real-time translated display for a Nintendo Switch 2 running
 Japanese games. Video (and audio) arrive over a USB-C UVC/UAC capture adapter; the app shows the game with
 minimal latency, recognizes Japanese text with Apple Vision, translates it on device with Apple Translation,
@@ -21,8 +23,28 @@ Nothing is injected into the Switch or the game: everything works on the externa
 | UVC capture + hot-plug, UAC audio passthrough | implemented; unverified without capture hardware |
 | Physical iPad / capture hardware measurements | procedure in `docs/device_testing.md` |
 | Fixed video stage; full screen, English/Japanese toggle, hold-to-peek, recent lines, keyboard shortcuts | implemented, CI-built; gestures unverified on device |
+| Study mode: freeze & select, offline JMdict/KANJIDIC2 lookup with conjugation, word card, word bank, FSRS review, Anki export, furigana overlay | implemented, CI-tested; gestures unverified on device |
+| Koubutsu theme: VCR/HUD components, pixel icons, app icon, boot animation, monitor housing | implemented, CI-built; motion unverified on device |
 
 ## Screenshots
+
+Koubutsu theme (Major 9, CI screenshots on 5223820, iPad simulator, synthetic clip): the video sits in a
+surveillance-monitor housing; VCR OSD Mono type, original pixel icons, paper sheets with HUD ticks.
+
+| Monitor + English overlay | Study | Word card |
+|---|---|---|
+| ![monitor](docs/screenshots/theme941_monitor.jpg) | ![study](docs/screenshots/theme941_study.jpg) | ![card](docs/screenshots/theme941_card.jpg) |
+
+| Settings | Word bank | Review |
+|---|---|---|
+| ![settings](docs/screenshots/theme941_settings.jpg) | ![words](docs/screenshots/theme941_words.jpg) | ![review](docs/screenshots/theme941_review.jpg) |
+
+Study mode (Major 8, CI screenshots on 8139770, iPad simulator, synthetic clip): drag over the frozen dialogue to
+list its words; tap 強 to get the word card; furigana over the game's own Japanese.
+
+| Drag selection | Word card | Furigana |
+|---|---|---|
+| ![drag](docs/screenshots/study860_drag.jpg) | ![card](docs/screenshots/study860_card.jpg) | ![furigana](docs/screenshots/study860_furigana.jpg) |
 
 Full screen and the fixed video stage (Phase 7.8.0, CI screenshots on 14d7a2b, iPad simulator, synthetic clip,
 demo translator). The video keeps the same position and size with or without the controls.

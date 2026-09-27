@@ -59,3 +59,17 @@ Line format:
 - **Phase 7.6.3** (2026-09-26) — [plan](phase_7.6.3_plan.md) · [log](phase_7.6.3_log.md) — Boxes widen into free space instead of covering neighbours; video no longer resizes with the OCR list.
 - **Phase 7.6.4** (2026-09-26) — [plan](phase_7.6.4_plan.md) · [log](phase_7.6.4_log.md) — The video has a fixed stage; bars and panels overlay the space below it.
 - **Phase 7.8.0** (2026-09-26) — [plan](phase_7.8.0_plan.md) · [log](phase_7.8.0_log.md) — Full screen, English/Japanese toggle, hold-to-peek, recent lines, keep-awake, text size, keyboard shortcuts.
+- **Phase 8.0.0** (2026-09-26) — [plan](phase_8.0.0_plan.md) — Study mode umbrella roadmap (8.1.0–8.6.0).
+- **Phase 8.1.0** (2026-09-26) — [plan](phase_8.1.0_plan.md) · [log](phase_8.1.0_log.md) — Study mode: freeze the frame, tap or drag to select Japanese, see its translation.
+- **Phase 8.2.0** (2026-09-26) — [plan](phase_8.2.0_plan.md) · [log](phase_8.2.0_log.md) — JMdict + KANJIDIC2 bundled offline (SQLite, 23 MB compressed) with attribution.
+- **Phase 8.3.0** (2026-09-26) — [plan](phase_8.3.0_plan.md) · [log](phase_8.3.0_log.md) — De-inflection and longest-match lookup; tap finds the conjugated word's dictionary form.
+- **Phase 8.3.1** (2026-09-26) — [log](phase_8.3.1_log.md) — More specific de-inflection rules win ties (行った → 行く).
+- **Phase 8.4.0** (2026-09-26) — [plan](phase_8.4.0_plan.md) · [log](phase_8.4.0_log.md) — Word card: furigana, romaji, senses, conjugation, kanji, sentence, voice, iPad dictionary.
+- **Phase 8.5.0** (2026-09-26) — [plan](phase_8.5.0_plan.md) · [log](phase_8.5.0_log.md) — Word bank with context, FSRS review, Anki export.
+- **Phase 8.6.0** (2026-09-26) — [plan](phase_8.6.0_plan.md) · [log](phase_8.6.0_log.md) — Furigana over the game's kanji; learning words underlined; known words bare.
+- **Phase 9.0.0** (2026-09-26) — [plan](phase_9.0.0_plan.md) — UI polish umbrella: Heisei VCR/HUD pixel identity (9.1.0–9.3.0).
+- **Phase 9.1.0** (2026-09-26) — [plan](phase_9.1.0_plan.md) · [log](phase_9.1.0_log.md) — Design system: tokens, VCR OSD Mono/DotGothic16, components, original pixel art, app icon, cover.
+- **Phase 9.2.0** (2026-09-26) — [plan](phase_9.2.0_plan.md) · [log](phase_9.2.0_log.md) — Every screen rethemed with Koubutsu components; no stock controls.
+- **Phase 9.3.0** (2026-09-26) — [plan](phase_9.3.0_plan.md) · [log](phase_9.3.0_log.md) — VCR boot sequence, freeze scan, bracket snap, blinking cursors; Reduce Motion aware.
+- **Phase 9.4.0** (2026-09-26) — [plan](phase_9.4.0_plan.md) · [log](phase_9.4.0_log.md) — Surveillance-monitor housing around the video outside full screen.
+- **Phase 9.4.1** (2026-09-26) — [log](phase_9.4.1_log.md) — Monitor header clears the status bar; housing fills the window.

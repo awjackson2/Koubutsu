@@ -82,6 +82,21 @@ struct LaunchOptions {
     var showDebug: Bool?
     /// Start in full screen (automation screenshots).
     var fullScreen = false
+    var overlayStyle: AppSettings.OverlayStyle?
+    /// Present a sheet at launch: settings, words, review, recent (automation screenshots).
+    var openSheet: String?
+    /// Add a few demo words to the word bank (automation screenshots).
+    var seedWords = false
+    /// Skip the power-on animation.
+    var skipBoot = false
+    /// Enter study mode this many seconds after launch (automation screenshots).
+    var studyAfter: Double?
+    /// Then select this normalized rect: `x,y,w,h`.
+    var studySelect: NormalizedRect?
+    /// Or tap this normalized point: `x,y`.
+    var studyTap: NormalizedPoint?
+    /// Open the word card for the tapped word.
+    var openCard = false
 
     static let current = LaunchOptions(arguments: CommandLine.arguments)
 
@@ -95,9 +110,23 @@ struct LaunchOptions {
             case "--hide-debug": showDebug = false
             case "--show-debug": showDebug = true
             case "--full-screen": fullScreen = true
+            case "--furigana": overlayStyle = .furigana
+            case "--seed-words": seedWords = true
+            case "--skip-boot": skipBoot = true
             default:
                 if arg.hasPrefix("--select-video=") { selectVideo = String(arg.dropFirst("--select-video=".count)) }
                 if arg.hasPrefix("--start-at=") { startAt = Double(arg.dropFirst("--start-at=".count)) }
+                if arg.hasPrefix("--study-after=") { studyAfter = Double(arg.dropFirst("--study-after=".count)) }
+                if arg == "--open-card" { openCard = true }
+                if arg.hasPrefix("--open=") { openSheet = String(arg.dropFirst("--open=".count)) }
+                if arg.hasPrefix("--study-tap=") {
+                    let v = arg.dropFirst("--study-tap=".count).split(separator: ",").compactMap { Double($0) }
+                    if v.count == 2 { studyTap = NormalizedPoint(x: v[0], y: v[1]) }
+                }
+                if arg.hasPrefix("--study-select=") {
+                    let v = arg.dropFirst("--study-select=".count).split(separator: ",").compactMap { Double($0) }
+                    if v.count == 4 { studySelect = NormalizedRect(x: v[0], y: v[1], width: v[2], height: v[3]) }
+                }
                 if arg.hasPrefix("--pause-after=") { pauseAfter = Double(arg.dropFirst("--pause-after=".count)) }
                 if arg.hasPrefix("--display-mode=") {
                     displayMode = AppSettings.DisplayMode(rawValue: String(arg.dropFirst("--display-mode=".count)))
@@ -109,6 +138,7 @@ struct LaunchOptions {
     func apply(to settings: inout AppSettings) {
         if resetSettings { settings = AppSettings() }
         if let displayMode { settings.displayMode = displayMode }
+        if let overlayStyle { settings.overlayStyle = overlayStyle }
         if let showBoxes { settings.showOCRBoxes = showBoxes }
         if let showDebug {
             settings.showDebugStatistics = showDebug

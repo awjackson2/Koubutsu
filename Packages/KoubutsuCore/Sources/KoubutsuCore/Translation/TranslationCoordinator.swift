@@ -73,6 +73,18 @@ public actor TranslationCoordinator {
                               fromCache: false, started: started, finished: finished)
     }
 
+    /// Translates arbitrary text (study-mode selections, sentences), cache first.
+    public func translate(text: String, sourceLanguage: String = "ja", targetLanguage: String = "en",
+                          quality: TranslationQuality = .lowLatency) async throws(TranslationError) -> String {
+        let request = TranslationRequest(text: text, sourceLanguage: sourceLanguage, targetLanguage: targetLanguage,
+                                         quality: quality)
+        let key = TranslationCache.Key(request)
+        if let cached = cache.lookup(key) { return cached }
+        let translation = try await service.translate(request)
+        cache.store(translation, for: key)
+        return translation
+    }
+
     public func availability(source: String = "ja", target: String = "en") async -> TranslationAvailability {
         await service.availability(source: source, target: target)
     }

@@ -106,6 +106,13 @@ final class TranslationController {
 
     func clearHistory() { history.removeAll() }
 
+    /// One-off translation of arbitrary text (study mode). Nil when translation is unavailable or fails.
+    func translate(text: String) async -> String? {
+        let (source, target, quality) = (sourceLanguage, targetLanguage, quality)
+        return try? await coordinator.translate(text: text, sourceLanguage: source, targetLanguage: target,
+                                                quality: quality)
+    }
+
     /// Feeds one OCR result. Cheap: stabilization runs inline; translation runs in child tasks.
     func process(_ result: OCRResult) {
         let mediaTime = result.frame.presentationTime.seconds

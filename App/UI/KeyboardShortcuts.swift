@@ -6,6 +6,9 @@ struct KeyboardShortcuts: View {
     struct Actions {
         var toggleFullScreen: () -> Void
         var toggleEnglish: () -> Void
+        var toggleStudy: () -> Void
+        var showWordBank: () -> Void
+        var showReview: () -> Void
         var showRecentLines: () -> Void
         var showSettings: () -> Void
     }
@@ -17,6 +20,9 @@ struct KeyboardShortcuts: View {
         ZStack {
             shortcut("f", modifiers: [], action: actions.toggleFullScreen)
             shortcut("t", modifiers: [], action: actions.toggleEnglish)
+            shortcut("s", modifiers: [], action: actions.toggleStudy)
+            shortcut("w", modifiers: [], action: actions.showWordBank)
+            shortcut("r", modifiers: [], action: actions.showReview)
             shortcut("h", modifiers: [], action: actions.showRecentLines)
             shortcut(",", modifiers: .command, action: actions.showSettings)
             shortcut(.space, modifiers: []) { Task { await model.togglePlayPause() } }
