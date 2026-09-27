@@ -325,6 +325,8 @@ struct RootView: View {
     }
 }
 
+/// Bottom control bar. Regular (iPad): every control inline. Compact (iPhone and narrow windows, 10.2.0): the primary
+/// controls inline and everything else in one "More" menu, fitting 375 pt with 44 pt targets.
 private struct ControlBar: View {
     let model: AppModel
     let isFullScreen: Bool
@@ -335,67 +337,148 @@ private struct ControlBar: View {
     let cycleOverlay: () -> Void
     let toggleFullScreen: () -> Void
     let toggleStudy: () -> Void
+    @Environment(\.layoutClass) private var layoutClass
 
     var body: some View {
         HStack(spacing: 4) {
-            Image("LogoMark")
-                .resizable()
-                .interpolation(.none)
-                .frame(width: 32, height: 32)
-                .padding(.trailing, 6)
-            KMenu(items: sourceItems) {
-                KIconLabel(icon: "source", title: model.selection?.label ?? "SOURCE")
-                    .frame(maxWidth: 240, alignment: .leading)
+            if layoutClass.isCompact {
+                compactControls
+            } else {
+                regularControls
             }
-            Button {
-                Task { model.isRunning ? await model.stop() : await model.start() }
-            } label: {
-                KIconLabel(icon: model.isRunning ? "stop" : "play")
-            }
-            .buttonStyle(KIconButtonStyle())
-            divider
-            Button(action: cycleOverlay) {
-                KIconLabel(icon: overlayLabel.icon, title: overlayLabel.title)
-            }
-            .buttonStyle(KIconButtonStyle(active: model.settings.showTranslation))
-            .help("English → furigana → original Japanese (T)")
-            KMenu(items: viewItems) { KIconLabel(icon: "eye") }
-            divider
-            Button(action: toggleStudy) { KIconLabel(icon: "study", title: "Study") }
-                .buttonStyle(KIconButtonStyle())
-                .help("Freeze the frame and look up words (S)")
-            Button {
-                showingWordBank = true
-            } label: {
-                let due = model.wordBank.bank.due(at: Date()).count
-                HStack(spacing: 6) {
-                    PixelIcon("words")
-                    Text("Words")
-                    if due > 0 { KTag(text: "\(due)", filled: true).kPulse(on: due) }
-                }
-            }
-            .buttonStyle(KIconButtonStyle())
-            .help("Word bank and review (W, R)")
-            Button { showingRecentLines = true } label: { KIconLabel(icon: "recent") }
-                .buttonStyle(KIconButtonStyle())
-                .help("Recent lines (H)")
-            Button(action: toggleFullScreen) { KIconLabel(icon: isFullScreen ? "windowed" : "fullscreen") }
-                .buttonStyle(KIconButtonStyle(active: isFullScreen))
-                .help("Full screen (F)")
-            Button { showingSettings = true } label: { KIconLabel(icon: "settings") }
-                .buttonStyle(KIconButtonStyle())
-            Spacer(minLength: 8)
-            OSDStatus(model: model)
+            Spacer(minLength: layoutClass.isCompact ? 4 : 8)
+            OSDStatus(model: model, compact: layoutClass.isCompact)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, layoutClass.isCompact ? 8 : 12)
+        // 44 pt targets + 2 pt padding keep the bar as tall as before (36 pt buttons + 6 pt padding).
+        .padding(.vertical, 2)
         .kSurface(.ink)
         .overlay(alignment: .top) { Rectangle().fill(K.red).frame(height: 2) }
+    }
+
+    /// The iPad bar: the same controls in the same order as before 10.2.0.
+    @ViewBuilder private var regularControls: some View {
+        Image("LogoMark")
+            .resizable()
+            .interpolation(.none)
+            .frame(width: 32, height: 32)
+            .padding(.trailing, 6)
+            .accessibilityHidden(true)
+        sourceMenu(showsTitle: true, maxTitleWidth: 240)
+        playStopButton
+        divider
+        overlayButton(showsTitle: true)
+        KMenu(items: viewItems) { KIconLabel(icon: "eye") }
+            .accessibilityLabel("View options")
+        divider
+        studyButton(showsTitle: true)
+        Button {
+            showingWordBank = true
+        } label: {
+            HStack(spacing: 6) {
+                PixelIcon("words").accessibilityHidden(true)
+                Text("Words")
+                if dueCount > 0 { KTag(text: "\(dueCount)", filled: true).kPulse(on: dueCount) }
+            }
+        }
+        .buttonStyle(KIconButtonStyle())
+        .help("Word bank and review (W, R)")
+        .accessibilityLabel(wordsTitle)
+        Button { showingRecentLines = true } label: { KIconLabel(icon: "recent") }
+            .buttonStyle(KIconButtonStyle())
+            .help("Recent lines (H)")
+            .accessibilityLabel("Recent lines")
+        fullScreenButton
+        Button { showingSettings = true } label: { KIconLabel(icon: "settings") }
+            .buttonStyle(KIconButtonStyle())
+            .accessibilityLabel("Settings")
+    }
+
+    /// iPhone / narrow window: source, play/stop, overlay cycle, study, full screen, more. Icons only in portrait;
+    /// landscape has the width for the source and overlay titles. No logo.
+    @ViewBuilder private var compactControls: some View {
+        let showsTitles = layoutClass == .compactLandscape
+        sourceMenu(showsTitle: showsTitles, maxTitleWidth: 160)
+        playStopButton
+        overlayButton(showsTitle: showsTitles)
+        studyButton(showsTitle: false)
+        fullScreenButton
+        moreMenu
+    }
+
+    // MARK: Controls shared by both arrangements
+
+    private func sourceMenu(showsTitle: Bool, maxTitleWidth: CGFloat) -> some View {
+        KMenu(items: sourceItems) {
+            if showsTitle {
+                KIconLabel(icon: "source", title: model.selection?.label ?? "SOURCE")
+                    .frame(maxWidth: maxTitleWidth, alignment: .leading)
+            } else {
+                KIconLabel(icon: "source")
+            }
+        }
+        .accessibilityLabel("Source")
+        .accessibilityValue(sourceValue)
+    }
+
+    private var playStopButton: some View {
+        Button {
+            Task { model.isRunning ? await model.stop() : await model.start() }
+        } label: {
+            KIconLabel(icon: model.isRunning ? "stop" : "play")
+        }
+        .buttonStyle(KIconButtonStyle())
+        .accessibilityLabel(playStopTitle)
+    }
+
+    private func overlayButton(showsTitle: Bool) -> some View {
+        Button(action: cycleOverlay) {
+            KIconLabel(icon: overlayLabel.icon, title: showsTitle ? overlayLabel.title : nil)
+        }
+        .buttonStyle(KIconButtonStyle(active: model.settings.showTranslation))
+        .help("English → furigana → original Japanese (T)")
+        .accessibilityLabel("Overlay")
+        .accessibilityValue(overlayLabel.spoken)
+        .accessibilityHint("Cycles English, furigana and original Japanese")
+    }
+
+    private func studyButton(showsTitle: Bool) -> some View {
+        Button(action: toggleStudy) { KIconLabel(icon: "study", title: showsTitle ? "Study" : nil) }
+            .buttonStyle(KIconButtonStyle())
+            .help("Freeze the frame and look up words (S)")
+            .accessibilityLabel("Study")
+    }
+
+    private var fullScreenButton: some View {
+        Button(action: toggleFullScreen) { KIconLabel(icon: isFullScreen ? "windowed" : "fullscreen") }
+            .buttonStyle(KIconButtonStyle(active: isFullScreen))
+            .help("Full screen (F)")
+            .accessibilityLabel(fullScreenTitle)
+    }
+
+    /// Compact overflow: words, recent lines, view toggles, loop (file sources) and settings. No "more" pixel glyph
+    /// exists, so it is the chevron turned to point down; a red block marks words due for review.
+    private var moreMenu: some View {
+        KMenu(items: moreItems) {
+            PixelIcon("chevron")
+                .rotationEffect(.degrees(90))
+                .accessibilityHidden(true)
+                .overlay(alignment: .topTrailing) {
+                    if dueCount > 0 {
+                        Rectangle().fill(K.red).frame(width: 6, height: 6)
+                    }
+                }
+        }
+        .help("Words, recent lines, view options and settings")
+        .accessibilityLabel("More")
+        .accessibilityValue(moreValue)
     }
 
     private var divider: some View {
         Rectangle().fill(K.paper.opacity(0.18)).frame(width: 1, height: 22).padding(.horizontal, 4)
     }
+
+    // MARK: Menus
 
     private func sourceItems() -> [KMenuItem] {
         var items = model.mediaItems.map { item in
@@ -432,21 +515,63 @@ private struct ControlBar: View {
         ]
     }
 
+    private func moreItems() -> [KMenuItem] {
+        var items: [KMenuItem] = [
+            KMenuItem(title: wordsTitle, icon: "words") { presentAfterMenu($showingWordBank) },
+            KMenuItem(title: "Recent lines", icon: "recent") { presentAfterMenu($showingRecentLines) },
+            .divider,
+        ]
+        items += viewItems()
+        if let status = model.playback {
+            items.append(.divider)
+            items.append(KMenuItem(title: "Loop video", icon: "loop", isChecked: status.loops) {
+                Task { await model.setLooping(!status.loops) }
+            })
+        }
+        items.append(.divider)
+        items.append(KMenuItem(title: "Settings", icon: "settings") { presentAfterMenu($showingSettings) })
+        return items
+    }
+
+    /// Opens a sheet once the menu popover has finished closing, so the two presentations do not collide.
+    private func presentAfterMenu(_ flag: Binding<Bool>) {
+        Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            flag.wrappedValue = true
+        }
+    }
+
     private func toggleItem(_ title: String, _ keyPath: WritableKeyPath<AppSettings, Bool>) -> KMenuItem {
         KMenuItem(title: title, isChecked: model.settings[keyPath: keyPath]) {
             model.settings[keyPath: keyPath].toggle()
         }
     }
 
-    private var overlayLabel: (title: String, icon: String) {
-        if !model.settings.showTranslation { return ("JP", "japanese") }
-        return model.settings.overlayStyle == .english ? ("EN", "english") : ("Furigana", "furigana")
+    // MARK: Titles
+
+    private var dueCount: Int { model.wordBank.bank.due(at: Date()).count }
+
+    private var wordsTitle: String { dueCount > 0 ? "Words (\(dueCount) due)" : "Words" }
+
+    private var moreValue: String { dueCount > 0 ? "\(dueCount) words due" : "" }
+
+    private var sourceValue: String { model.selection?.label ?? "None" }
+
+    private var playStopTitle: String { model.isRunning ? "Stop" : "Play" }
+
+    private var fullScreenTitle: String { isFullScreen ? "Exit full screen" : "Full screen" }
+
+    private var overlayLabel: (title: String, icon: String, spoken: String) {
+        if !model.settings.showTranslation { return ("JP", "japanese", "Original Japanese") }
+        return model.settings.overlayStyle == .english
+            ? ("EN", "english", "English") : ("Furigana", "furigana", "Furigana")
     }
 }
 
-/// VCR-style status readout: a blinking record dot, state, format and frame rates.
+/// VCR-style status readout: a blinking record dot, state, format and frame rates. Compact: dot and state only.
 private struct OSDStatus: View {
     let model: AppModel
+    var compact = false
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.6)) { context in
@@ -456,12 +581,15 @@ private struct OSDStatus: View {
                     .fill(model.isRunning ? K.red : K.grey)
                     .frame(width: 8, height: 8)
                     .opacity(model.isRunning && !blink ? 0.25 : 1)
-                Text(text)
+                Text(compact ? stateLabel : text)
             }
             .font(K.osd(13))
             .foregroundStyle(K.paper.opacity(0.7))
             .lineLimit(1)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Status")
+        .accessibilityValue(spokenState)
     }
 
     private var text: String {
@@ -478,6 +606,16 @@ private struct OSDStatus: View {
         case .running: "REC"
         case .stopped: "STOP"
         case .failed: "ERR"
+        }
+    }
+
+    private var spokenState: String {
+        switch model.sourceState {
+        case .idle: "Idle"
+        case .starting: "Loading"
+        case .running: "Running"
+        case .stopped: "Stopped"
+        case .failed: "Error"
         }
     }
 }
