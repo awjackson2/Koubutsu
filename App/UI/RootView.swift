@@ -58,8 +58,8 @@ struct RootView: View {
             }
             .ignoresSafeArea(edges: .top)
         }
-        .background(Color.black)
-        .ignoresSafeArea(edges: .top)
+        // Only the background ignores the safe area here: the outer reader must stay inside it (10.3.2).
+        .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .tint(K.red)
         .font(K.osd(16))
