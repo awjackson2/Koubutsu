@@ -29,6 +29,14 @@ Nothing is injected into the Switch or the game: everything works on the externa
 
 ## Screenshots
 
+iPhone mode (Major 10, CI screenshots on 7a8f7e2 / 3f6b578, iPhone Pro simulator, synthetic clip): portrait puts
+the video under a slim housing header with the controls below it; landscape shows the video at full height with
+controls a tap away (CONTROLS tab); study mode becomes a collapsible strip.
+
+| Portrait | Landscape | Landscape study |
+|---|---|---|
+| ![portrait](docs/screenshots/iphone1032_portrait.jpg) | ![landscape](docs/screenshots/iphone1032_landscape.jpg) | ![study](docs/screenshots/iphone1050_landscape_study.jpg) |
+
 Koubutsu theme (Major 9, CI screenshots on 5223820, iPad simulator, synthetic clip): the video sits in a
 surveillance-monitor housing; VCR OSD Mono type, original pixel icons, paper sheets with HUD ticks.
 

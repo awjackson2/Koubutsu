@@ -19,7 +19,11 @@ from the modifier chain, so it reported a top inset of 0 as well.
 - Landscape (hairline stage, CONTROLS tab) and iPad (stage y 62) were correct on 8e14b3d.
 
 ## Current Limitations
-- Confirmed by the next iPhone portrait screenshots.
+- Verified on 7a8f7e2 screenshots: portrait header below the Dynamic Island, video under it; landscape unchanged.
+  iPad: the header now uses the real status-bar inset, so the housing sits a few points lower than 9.4.1 and the
+  CH-01 tag no longer touches the clock.
+- Portrait overlay mode with no panels leaves a large textured gap between the transport and control bars
+  (candidate for a 10.7 follow-up).
 
 ## Artifacts Produced
 - `App/UI/RootView.swift`.
