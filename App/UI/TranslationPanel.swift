@@ -13,9 +13,19 @@ struct TranslationPanel: View {
                 HStack {
                     KTag(text: "Notice", filled: true)
                     Text(message).font(K.osd(14))
-                    if controller.availability == .needsDownload {
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if controller.isPreparingDownload {
+                        HStack(spacing: 4) {
+                            Text("PREPARING").font(K.osd(13)).foregroundStyle(K.red)
+                            BlinkingCursor(width: 7, height: 12).accessibilityHidden(true)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Preparing language download")
+                    } else if controller.availability == .needsDownload {
                         Button("Download") { controller.requestDownload() }
                             .buttonStyle(.k(.primary))
+                            .accessibilityHint("Shows the system prompt to download Japanese and English")
                     }
                 }
             }
