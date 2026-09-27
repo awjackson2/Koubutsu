@@ -74,3 +74,4 @@ Line format:
 - **Phase 9.4.0** (2026-09-26) — [plan](phase_9.4.0_plan.md) · [log](phase_9.4.0_log.md) — Surveillance-monitor housing around the video outside full screen.
 - **Phase 9.4.1** (2026-09-26) — [log](phase_9.4.1_log.md) — Monitor header clears the status bar; housing fills the window.
 - **Phase 9.4.2** (2026-09-27) — [log](phase_9.4.2_log.md) — Screenshot CI runs on demand only, optionally for chosen screens.
+- **Phase 10.0.0** (2026-09-27) — [plan](phase_10.0.0_plan.md) — iPhone mode umbrella: compact portrait and landscape layouts (10.1.0–10.6.0).
