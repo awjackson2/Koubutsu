@@ -44,16 +44,14 @@ extension RootView {
         model.settings.displayMode != .overlay || model.settings.showRecognizedText
     }
 
-    /// The chrome stacked below the stage. Study mode: the study panel directly under the video (10.5.0 refines
-    /// it). Otherwise the transport bar, the panels sharing the remaining height and the control bar at the
-    /// bottom. With no sharing panel the housing shows through between the bars (outside full screen), or the
-    /// bars sit together at the bottom (full screen).
+    /// The chrome stacked below the stage. Study mode: the study panel directly under the video, filling the whole
+    /// region (10.5.0; `StudyPanel` takes the offered height in compact portrait). Otherwise the transport bar,
+    /// the panels sharing the remaining height and the control bar at the bottom. With no sharing panel the housing
+    /// shows through between the bars (outside full screen), or the bars sit together at the bottom (full screen).
     @ViewBuilder private func compactPortraitChrome(panelMinHeight: CGFloat) -> some View {
         VStack(spacing: 0) {
             if study.isActive {
-                if isFullScreen { Spacer(minLength: 0) }
                 studyPanel
-                if !isFullScreen { Spacer(minLength: 0) }
             } else {
                 if isFullScreen && !showsFlexiblePanel { Spacer(minLength: 0) }
                 transportBar

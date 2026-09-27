@@ -52,14 +52,16 @@ extension RootView {
     }
 
     /// Transport bar, panels and control bar; the panels share at most what is left of 60 % of the stage height
-    /// once the bars are placed, so the video stays mostly visible. Study mode shows its panel instead (10.5.0
-    /// revisits its placement).
+    /// once the bars are placed, so the video stays mostly visible. Study mode shows only the study strip
+    /// (10.5.0): at most `VideoStageLayout.overlayStudyFraction` (40 %) of the stage height, collapsible to its
+    /// header, so the frozen frame above it stays visible and selectable. The chrome stays up and the CONTROLS tab
+    /// hidden for the whole of study mode (`chromeShown`).
     private func landscapeChrome(stageHeight: Double) -> some View {
         let barsHeight = Self.landscapeControlBarHeight + (model.playback != nil ? Self.landscapeTransportBarHeight : 0)
         let panelBudget = VideoStageLayout.overlayPanelBudget(stageHeight: stageHeight, barsHeight: barsHeight)
         return VStack(spacing: 0) {
             if study.isActive {
-                studyPanel
+                studyPanel(overlayStageHeight: stageHeight)
             } else {
                 transportBar
                 if panelBudget > 0 {
