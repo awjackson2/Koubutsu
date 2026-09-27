@@ -1,6 +1,6 @@
 # Architecture
 
-Last synced: Phase 10.1.0 (2026-09-27)
+Last synced: Phase 10.6.0 (2026-09-27)
 
 ## Layers
 
@@ -93,6 +93,20 @@ size, not the device: compact landscape when the window is under 500 pt tall, el
 600 pt wide, else regular (every full-screen iPad). `RootView` publishes it as `@Environment(\.layoutClass)`.
 `VideoStageLayout.windowedInsets(for:safe:)` gives the stage insets per class: regular keeps the monitor housing;
 compact portrait has a 24 pt header and 6 pt bezels; compact landscape stays inside all safe-area edges.
+
+`RootView.body` dispatches to one layout per class (`regularLayout`, `CompactPortraitLayout.swift`,
+`CompactLandscapeLayout.swift`), composed from shared pieces (`interactiveStage`, `transportBar`, `panels`,
+`controlBar`, `studyPanel`):
+- Regular: as above (monitor housing, chrome overlaid below the stage, fixed-height panels).
+- Compact portrait (10.3.0): slim `CompactMonitorFrame` header, stage full width at the top, chrome in
+  `VideoStageLayout.chromeRegion(below:)` under the stage (never over it), panels sharing its height. Full screen
+  centres the stage (`centered`) and reveals the chrome by tap in the region below.
+- Compact landscape (10.4.0): stage at full height inside the safe area with a hairline border; chrome is an
+  overlay revealed by a tap (or the CONTROLS tab) and hidden after 4 s (not while VoiceOver runs); panels share
+  `overlayPanelBudget` (bars + panels ≤ 60 % of the stage height).
+
+Sheets (10.6.0) measure their own width (`SheetLayout`, `App/UI/SheetSupport.swift`) and stack rows below 500 pt or
+at accessibility text sizes.
 
 Full screen (`RootView.isFullScreen`) removes the chrome overlay and the status bar; a tap on the stage reveals
 the chrome for 4 s. Holding on the stage hides the replacement overlay (peek at the original). Keyboard shortcuts
