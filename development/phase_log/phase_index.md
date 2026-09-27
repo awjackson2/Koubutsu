@@ -76,3 +76,4 @@ Line format:
 - **Phase 9.4.2** (2026-09-27) — [log](phase_9.4.2_log.md) — Screenshot CI runs on demand only, optionally for chosen screens.
 - **Phase 10.0.0** (2026-09-27) — [plan](phase_10.0.0_plan.md) — iPhone mode umbrella: compact portrait and landscape layouts (10.1.0–10.6.0).
 - **Phase 10.1.0** (2026-09-27) — [plan](phase_10.1.0_plan.md) · [log](phase_10.1.0_log.md) — iPhone target, layout classes from window size, iPhone simulator in CI.
+- **Phase 10.2.0** (2026-09-27) — [plan](phase_10.2.0_plan.md) · [log](phase_10.2.0_log.md) — Compact control and transport bars with a More menu; 44 pt targets and VoiceOver labels everywhere.

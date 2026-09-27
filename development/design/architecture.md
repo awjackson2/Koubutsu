@@ -20,8 +20,8 @@ Last synced: Phase 10.1.0 (2026-09-27)
 │ Media       MediaTime · HostTime · HostClock · FrameTiming · VideoSource · VideoFormat · Playback  │
 │ Pipeline    FrameSampler · LatestValueMailbox                                                      │
 │ Metrics     RateCounter · LatencyStats · PipelineMetrics                                           │
-│ Geometry    NormalizedRect/Point/Quad · CoordinateMapper · PlaneRect · VideoStageLayout · Layout- │
-│             Class                                                                                  │
+│ Geometry    NormalizedRect/Point/Quad · CoordinateMapper · PlaneRect · VideoStageLayout ·          │
+│             LayoutClass                                                                            │
 │ OCR         RecognizedTextObservation · OCRResult · OCRConfiguration · OCRService                  │
 │ Text        TextNormalizer · TextBlockGrouper · TextStabilizer                                     │
 │ Translation TranslationService · TranslationRequest/Context · TranslationCache ·                   │

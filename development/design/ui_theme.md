@@ -1,6 +1,6 @@
 # UI theme — the Koubutsu look
 
-Last synced: Phase 9.4.1 (2026-09-26)
+Last synced: Phase 10.2.0 (2026-09-27)
 
 Heisei-era (late 90s–2005) VCR on-screen display meets surveillance HUD: paper white, ink black, signal red,
 1-bit dithered imagery, detection boxes with corner ticks, monospaced OSD lettering.
@@ -27,6 +27,13 @@ the button presses into), `KIconButtonStyle`, `KToggleStyle` (sliding block + ON
 square thumb), `KSegmented`, `KMenu` (ink popover list replacing `Menu`), `KSectionHeader` ("■ ■ ■ TITLE —— 01"),
 `KTag`, `KSheetHeader` (replaces navigation bars), `kPanel`, `kSheet` (square, paper), `KSearchField`,
 `GrainOverlay`, `Scanlines`, `CornerTicks`, `BlockMarks`. UIKit appearance covers remaining system bars/alerts.
+
+## Bars on compact layouts (10.2.0)
+- `KIconButtonStyle` guarantees a 44×44 pt hit area outside the visible pressed block; `KIconLabel` hides its
+  pixel icon from VoiceOver, and every icon-only control carries an `accessibilityLabel`.
+- Compact control bar (`@Environment(\.layoutClass).isCompact`): source, play/stop, overlay cycle, study, full
+  screen and a "More" `KMenu` (words, recent lines, view toggles, loop, settings); titles only in landscape;
+  status readout is dot + state. Compact transport bar: skip, play, time, scrubber (no ticks, loop, import).
 
 ## Monitor housing (`App/Theme/MonitorFrame.swift`)
 Outside full screen the video sits in a surveillance-monitor console: header strip (CH-01 tag, source name,
