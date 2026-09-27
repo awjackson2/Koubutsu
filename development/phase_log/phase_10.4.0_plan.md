@@ -48,3 +48,9 @@ CI build on both simulators; iPhone landscape screenshots (overlay, fullscreen, 
 
 ## Summary
 iPhone landscape shows the largest possible video with controls a tap away.
+
+## Amendments
+- 2026-09-27 (during implementation): geometry for the overlay chrome added to `VideoStageLayout` (rule 6) —
+  `overlayPanelBudget(stageHeight:barsHeight:)` (bars + panels ≤ 60 % of the stage height) and
+  `overlayChromeInsets(safe:)`, with Linux tests. `RootView` gains `interactiveStage(_:onTap:)` and a
+  `voiceOverEnabled` environment value (no auto-hide while VoiceOver runs); regular layout unchanged.
