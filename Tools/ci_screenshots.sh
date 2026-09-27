@@ -25,8 +25,11 @@ BUNDLE=com.awjackson2.Koubutsu
 # Vision on the simulator runs on the CPU: the first Japanese request loads models for ~2 minutes and
 # later requests take several seconds each. Each configuration therefore runs for a few minutes and is
 # captured repeatedly; all captures are kept.
+# SERIES (comma-separated names, optional) limits which configurations run; empty runs all of them.
+SERIES=$(echo "${SERIES:-}" | tr -d ' ')
 series() { # name, launch args...
   local name=$1; shift
+  if [ -n "$SERIES" ] && [[ ",${SERIES}," != *",${name},"* ]]; then echo "skipping ${name}"; return; fi
   xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
   xcrun simctl launch "$UDID" "$BUNDLE" "$@" > /dev/null
   # Warm up (first Vision request loads models), then sample densely across two 24 s clip loops.

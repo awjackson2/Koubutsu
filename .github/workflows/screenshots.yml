@@ -1,8 +1,14 @@
 name: Screenshots
+# On demand only (9.4.2): the job takes 40-70 min and asserts nothing, so it runs when a UI phase needs
+# pictures, not on every push. Start it from the Actions tab or the API; `series` limits which
+# configurations are captured (comma-separated names from Tools/ci_screenshots.sh, empty = all).
 on:
-  push:
   workflow_dispatch:
-# Never cancelled by later pushes: every commit gets its own screenshot set.
+    inputs:
+      series:
+        description: "Comma-separated series (panel_debug,overlay,fullscreen,study,card,furigana,settings,words,review); empty = all"
+        required: false
+        default: ""
 concurrency:
   group: screenshots-${{ github.sha }}
   cancel-in-progress: false
@@ -15,6 +21,8 @@ jobs:
       - name: Select Xcode
         run: Tools/ci_select_xcode.sh
       - name: Capture screenshots
+        env:
+          SERIES: ${{ inputs.series }}
         run: Tools/ci_screenshots.sh
       - uses: actions/upload-artifact@v4
         if: always()
