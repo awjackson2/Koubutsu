@@ -50,3 +50,15 @@ Core tests unchanged (insets covered in 10.1.0). CI build on both simulators; iP
 
 ## Summary
 iPhone portrait shows the video on top and every control and panel below it.
+
+## Amendments
+- 2026-09-27 (during implementation): new compact-portrait geometry went into `VideoStageLayout` with Linux tests
+  (`CompactPortraitLayoutTests`) instead of "core tests unchanged": `compactHeader(above:)`,
+  `chromeRegion(below:containerWidth:containerHeight:gap:bottomInset:)`, `compactPanelMinHeight(regionHeight:)`
+  and `centered(containerWidth:containerHeight:insets:aspect:)` (rule 6: the layout file computes no geometry).
+- The slim housing is a separate `CompactMonitorFrame` view in `MonitorFrame.swift` rather than a `compact: Bool`
+  on `MonitorFrame`, so the regular housing's code stays as it was (only `MonitorClock` gains a `fontSize`
+  parameter defaulting to 14).
+- Full screen: the revealed chrome is placed in the region below the centred video (bottom-anchored) rather than
+  over the whole window, so it does not cover the video either.
+- The layout seam in `RootView` (commit e932cd2) is part of this phase.

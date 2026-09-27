@@ -71,6 +71,50 @@ public enum VideoStageLayout {
         StageInsets(top: 0, left: safe.left, bottom: safe.bottom, right: safe.right)
     }
 
+    // MARK: Compact portrait (10.3.0)
+
+    /// Gap between the compact portrait stage and the chrome stacked below it (clears the bezel).
+    public static let compactChromeGap = 6.0
+
+    /// Minimum height of each scrolling panel sharing the compact portrait chrome region.
+    public static let compactPanelMinHeight = 88.0
+
+    /// Height budgeted for the transport and control bars when deciding whether the panels get their minimum.
+    public static let compactBarsAllowance = 100.0
+
+    /// The slim housing header strip directly above `stage` (compact portrait, outside full screen).
+    public static func compactHeader(above stage: PlaneRect) -> PlaneRect {
+        PlaneRect(x: stage.x, y: stage.y - compactHeaderHeight, width: stage.width, height: compactHeaderHeight)
+    }
+
+    /// The full-width strip below `stage` that holds the bars and panels in compact portrait: from `gap` under the
+    /// stage down to `bottomInset` above the container bottom. Never overlaps the stage; zero height when the stage
+    /// leaves no room.
+    public static func chromeRegion(below stage: PlaneRect, containerWidth: Double, containerHeight: Double,
+                                    gap: Double = compactChromeGap, bottomInset: Double = 0) -> PlaneRect {
+        let bottom = max(containerHeight - bottomInset, 0)
+        let top = min(stage.maxY + gap, bottom)
+        return PlaneRect(x: 0, y: top, width: max(containerWidth, 0), height: bottom - top)
+    }
+
+    /// Minimum height for each of the two scrolling panels in a chrome region `regionHeight` tall: the full
+    /// minimum when two panels and the bars fit, otherwise zero (the panels then share what is left rather than
+    /// pushing the chrome over the video).
+    public static func compactPanelMinHeight(regionHeight: Double) -> Double {
+        regionHeight >= compactPanelMinHeight * 2 + compactBarsAllowance ? compactPanelMinHeight : 0
+    }
+
+    /// As `framed`, but centred vertically in the available height as well (full screen in compact portrait).
+    public static func centered(containerWidth: Double, containerHeight: Double, insets: StageInsets = .zero,
+                                aspect: Double = defaultAspect) -> PlaneRect {
+        var stage = framed(containerWidth: containerWidth, containerHeight: containerHeight, insets: insets,
+                           aspect: aspect)
+        guard stage != .zero else { return .zero }
+        let availableHeight = containerHeight - insets.top - insets.bottom
+        stage.y = insets.top + (availableHeight - stage.height) / 2
+        return stage
+    }
+
     /// Full container width, top-aligned, height from `aspect`; clamped (and centred horizontally) when the
     /// container is too short for full width.
     public static func stage(containerWidth: Double, containerHeight: Double,

@@ -101,9 +101,70 @@ struct MonitorFrame: View {
     }
 }
 
+/// Slim housing for compact portrait (10.3.0): the housing texture, a thin recessed bezel with red corner ticks and
+/// a one-line header (channel tag, source, clock) in fixed small type that fits
+/// `VideoStageLayout.compactHeaderHeight`. No rails and no maker's plate. Decorative only, like `MonitorFrame`.
+struct CompactMonitorFrame: View {
+    /// The video stage in this view's coordinate space.
+    let stage: CGRect
+    /// The header strip above the stage (from `VideoStageLayout.compactHeader(above:)`).
+    let header: CGRect
+    let sourceLabel: String?
+    let isRunning: Bool
+
+    private let bezel: CGFloat = 3
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            K.inkRaised
+                .kTexture(grain: 0.25, scanlines: 0.35)
+            Rectangle()
+                .fill(K.ink)
+                .overlay(Rectangle().stroke(K.paper.opacity(0.22), lineWidth: 1))
+                .frame(width: stage.width + bezel * 2, height: stage.height + bezel * 2)
+                .offset(x: stage.minX - bezel, y: stage.minY - bezel)
+            CornerTicks(length: 12)
+                .stroke(K.red, lineWidth: 2)
+                .frame(width: stage.width + bezel * 2, height: stage.height + bezel * 2)
+                .offset(x: stage.minX - bezel, y: stage.minY - bezel)
+            headerStrip
+                .padding(.bottom, bezel)
+                .frame(width: header.width, height: header.height)
+                .offset(x: header.minX, y: header.minY)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private var headerStrip: some View {
+        HStack(spacing: 6) {
+            // KTag scales with Dynamic Type; the header has a fixed height, so the tag uses fixed type here.
+            Text("CH-01")
+                .font(K.osdFixed(10))
+                .foregroundStyle(K.paper)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
+                .background(K.red)
+            Text((sourceLabel ?? "NO SOURCE").uppercased())
+                .font(K.osdFixed(11))
+                .foregroundStyle(K.paper.opacity(0.8))
+                .lineLimit(1)
+                .truncationMode(.tail)
+            BlockMarks(count: 3, size: 3)
+            Spacer(minLength: 6)
+            MonitorClock(isRunning: isRunning, fontSize: 11)
+                .lineLimit(1)
+                .fixedSize()
+        }
+    }
+}
+
 /// "● REC 21:47:03" — the record dot blinks while a source runs; the host clock ticks once a second.
 private struct MonitorClock: View {
     let isRunning: Bool
+    /// 14 in the regular housing, 11 in the compact header (10.3.0); the record dot scales with it.
+    var fontSize: CGFloat = 14
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -112,12 +173,12 @@ private struct MonitorClock: View {
             HStack(spacing: 6) {
                 Rectangle()
                     .fill(isRunning ? K.red : K.grey)
-                    .frame(width: 8, height: 8)
+                    .frame(width: fontSize * 8 / 14, height: fontSize * 8 / 14)
                     .opacity(isRunning && blink ? 0.25 : 1)
                 Text(isRunning ? "REC" : "STBY")
                 Text(Self.clock(context.date))
             }
-            .font(K.osdFixed(14))
+            .font(K.osdFixed(fontSize))
             .foregroundStyle(K.paper.opacity(0.8))
         }
     }
