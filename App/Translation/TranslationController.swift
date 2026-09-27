@@ -87,9 +87,26 @@ final class TranslationController {
         }
     }
 
+    /// True from the Download tap until the system prompt / download attempt ends (10.7.3).
+    private(set) var isPreparingDownload = false
+
     func requestDownload() {
-        downloadConfiguration = TranslationSession.Configuration(source: Locale.Language(identifier: sourceLanguage),
-                                                                 target: Locale.Language(identifier: targetLanguage))
+        guard !isPreparingDownload else { return }
+        isPreparingDownload = true
+        if downloadConfiguration != nil {
+            // Same configuration still set (an earlier attempt did not finish): invalidating re-runs the task.
+            downloadConfiguration?.invalidate()
+        } else {
+            downloadConfiguration = TranslationSession.Configuration(
+                source: Locale.Language(identifier: sourceLanguage),
+                target: Locale.Language(identifier: targetLanguage))
+        }
+        // If the system never runs the task (no prompt appears), give the button back so a second tap retries.
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(30))
+            guard let self, self.isPreparingDownload else { return }
+            self.isPreparingDownload = false
+        }
     }
 
     /// Runs the system download prompt on the session SwiftUI provides. Nonisolated: the framework call must
@@ -103,13 +120,26 @@ final class TranslationController {
         }
     }
 
+    /// Ends a Download attempt and always reports its outcome: the refreshed availability sets the notice first,
+    /// then a download error or a still-missing language replaces it, so neither is overwritten (10.7.3).
     func downloadFinished(error: String?) async {
         downloadConfiguration = nil
-        if let error { statusMessage = "Language download failed: \(error)" }
+        isPreparingDownload = false
+        downloadAttempted = true
         await resetService()
         await refreshAvailability()
+        if let error {
+            statusMessage = "Language download failed: \(error)"
+        } else if availability == .needsDownload {
+            statusMessage = "The language download did not complete. Tap Download to try again, or download "
+                + "Japanese and English in Settings → Apps → Translate."
+        }
         retryUntranslated()
     }
+
+    /// Set after a Download attempt: a later `.notInstalled` while Apple reports the pair installed means the
+    /// system prompt has nothing to offer, so the notice points to the manual download instead.
+    private var downloadAttempted = false
 
     /// Source stopped or playback jumped: forget what was on screen.
     func reset() {
@@ -208,7 +238,14 @@ final class TranslationController {
             } catch {
                 switch error {
                 case .notInstalled:
+                    let reportedInstalled = availability == .installed
                     apply(.needsDownload)
+                    if reportedInstalled && downloadAttempted {
+                        statusMessage = "Translation still reports Japanese → English as not downloaded although "
+                            + "the system lists it as installed. Download Japanese and English in Settings → Apps "
+                            + "→ Translate (or General → Language & Region → Translation Languages), then restart "
+                            + "the source."
+                    }
                     history.setFailure(Self.failureLabel(for: .needsDownload), for: stable.id)
                 case .unsupportedLanguagePair:
                     apply(.unsupported)
