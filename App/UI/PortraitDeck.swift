@@ -239,6 +239,11 @@ private struct DeckLogRow: View {
                         Text("TRANSLATING").font(K.osd(12, relativeTo: .caption)).foregroundStyle(K.red)
                         BlinkingCursor(width: 7, height: 12).accessibilityHidden(true)
                     }
+                } else if let failure = entry.failure {
+                    // Why there is no English (10.7.2): not downloaded, unsupported, or the provider's error.
+                    Text("— " + failure).font(K.osd(12, relativeTo: .caption))
+                        .foregroundStyle(K.red.opacity(0.85))
+                        .lineLimit(2)
                 } else {
                     Text("— NO TRANSLATION").font(K.osd(12, relativeTo: .caption))
                         .foregroundStyle(K.paper.opacity(0.35))
@@ -262,6 +267,8 @@ private struct DeckLogRow: View {
             parts.append(translation)
         } else if isTranslating {
             parts.append("Translating")
+        } else if let failure = entry.failure {
+            parts.append(failure.capitalized)
         }
         if isOnScreen { parts.append("on screen") }
         return parts.joined(separator: ", ")
