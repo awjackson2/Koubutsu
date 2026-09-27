@@ -80,3 +80,4 @@ Line format:
 - **Phase 10.4.0** (2026-09-27) — [plan](phase_10.4.0_plan.md) · [log](phase_10.4.0_log.md) — Compact landscape: full-height video inside the safe area, tap-to-reveal controls, panels capped at 60 %.
 - **Phase 10.6.0** (2026-09-27) — [plan](phase_10.6.0_plan.md) · [log](phase_10.6.0_log.md) — Sheets fit iPhone widths and landscape; Dynamic Type, VoiceOver labels, 44 pt targets.
 - **Phase 10.3.0** (2026-09-27) — [plan](phase_10.3.0_plan.md) · [log](phase_10.3.0_log.md) — Compact portrait: slim housing header, video on top, bars and panels below it, never over it.
+- **Phase 10.5.0** (2026-09-27) — [plan](phase_10.5.0_plan.md) · [log](phase_10.5.0_log.md) — Study mode on compact layouts: panel fills the portrait region, collapsible 40 % strip in landscape, snapped taps on small video.
