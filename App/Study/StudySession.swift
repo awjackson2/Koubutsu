@@ -1,4 +1,5 @@
 import CoreImage
+import Foundation
 import KoubutsuCore
 import Observation
 
@@ -29,12 +30,16 @@ final class StudySession {
     private(set) var words: [LookupResult] = []
     /// Words of a dragged phrase.
     private(set) var tokens: [LookupToken] = []
+    /// Arrow-control navigation over the Japanese lines (10.8.0): per character as soon as the frame is read, per
+    /// word once every line has been segmented. Nil until the frame is read.
+    private(set) var navigator: StudyNavigator?
 
     /// Open the word card as soon as the tapped word is looked up (automation screenshots).
     var autoOpenCard = false
 
     @ObservationIgnored private var lookup: DictionaryLookup?
     @ObservationIgnored private var lookupTask: Task<Void, Never>?
+    @ObservationIgnored private var navigatorTask: Task<Void, Never>?
 
     @ObservationIgnored private var translator: TranslationController?
     @ObservationIgnored private var translateTask: Task<Void, Never>?
@@ -56,6 +61,8 @@ final class StudySession {
         phase = .recognizing
         observations = []
         spans = []
+        navigatorTask?.cancel()
+        navigator = nil
         translation = nil
         translatedSource = nil
         frameTiming = frame.timing
@@ -69,6 +76,7 @@ final class StudySession {
             guard isActive else { return }
             observations = result.observations
             phase = .ready
+            buildNavigator()
         } catch {
             guard isActive else { return }
             phase = .failed(error.description)
@@ -79,6 +87,8 @@ final class StudySession {
         isActive = false
         translateTask?.cancel()
         lookupTask?.cancel()
+        navigatorTask?.cancel()
+        navigator = nil
         words = []
         tokens = []
         image = nil
@@ -107,6 +117,42 @@ final class StudySession {
         spans = selected
         translate(StudySelection.joinedText(selected))
         segment(StudySelection.joinedText(selected))
+    }
+
+    /// Applies an arrow-control step to the selection (10.8.0). Word steps behave as a tap on the word (line
+    /// translation, dictionary lookup); every other step as a drag over the new selection. At an end nothing
+    /// changes.
+    func move(_ step: StudyNavigator.Step) {
+        guard let navigator, let selected = navigator.move(step, from: spans) else { return }
+        switch step {
+        case .nextWord, .previousWord:
+            select(spans: selected, asWord: true)
+        case .nextLine, .previousLine, .extendCharacter, .shrinkCharacter, .extendWord:
+            select(spans: selected, asWord: false)
+        }
+    }
+
+    /// Whether `move(step)` would change the selection (the pad disables a control at an end).
+    func canMove(_ step: StudyNavigator.Step) -> Bool {
+        navigator?.move(step, from: spans) != nil
+    }
+
+    /// The shared selection path for navigator moves: a single word goes through the tap path, anything else
+    /// through the drag path, so lookup, translation and segmentation match touch selection exactly.
+    func select(spans selected: [SelectedSpan], asWord: Bool) {
+        guard !selected.isEmpty else {
+            clearSelection()
+            return
+        }
+        if asWord, selected.count == 1, let span = selected.first {
+            spans = [span]
+            translate(span.lineText)
+            lookUpWord(at: span)
+        } else {
+            spans = selected
+            translate(StudySelection.joinedText(selected))
+            segment(StudySelection.joinedText(selected))
+        }
     }
 
     func clearSelection() {
@@ -160,6 +206,26 @@ final class StudySession {
                 spans = [SelectedSpan(observationID: span.observationID, range: start..<end,
                                       text: String(characters[start..<end]), lineText: span.lineText)]
             }
+        }
+    }
+
+    /// Character-level navigator now; word-level once every Japanese line is segmented off the main actor.
+    private func buildNavigator() {
+        navigatorTask?.cancel()
+        let lines = japaneseObservations
+        navigator = StudyNavigator(observations: lines)
+        guard let lookup, !lines.isEmpty else { return }
+        navigatorTask = Task {
+            let built = await Task.detached(priority: .userInitiated) {
+                var ranges: [UUID: [Range<Int>]] = [:]
+                for line in lines {
+                    ranges[line.id] = StudyNavigator.wordRanges(tokens: lookup.segment(line.text),
+                                                                length: line.text.count)
+                }
+                return StudyNavigator(observations: lines, wordRanges: ranges)
+            }.value
+            guard !Task.isCancelled, isActive, japaneseObservations.map(\.id) == lines.map(\.id) else { return }
+            navigator = built
         }
     }
 

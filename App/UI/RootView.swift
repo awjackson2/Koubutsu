@@ -48,7 +48,7 @@ struct RootView: View {
                     }
                 }
                 .environment(\.layoutClass, layoutClass)
-                .background { KeyboardShortcuts(model: model, actions: shortcutActions) }
+                .background { KeyboardShortcuts(model: model, study: study, actions: shortcutActions) }
                 .overlay {
                     if booting {
                         BootSequenceView { withAnimation(.easeOut(duration: 0.2)) { booting = false } }

@@ -104,8 +104,7 @@ public struct StudySelection: Sendable {
 
     /// Every character whose box is mostly inside `rect`, grouped per line in reading order.
     public func spans(in rect: NormalizedRect) -> [SelectedSpan] {
-        let ordered = observations.sorted { ($0.boundingBox.minY, $0.boundingBox.minX) < ($1.boundingBox.minY, $1.boundingBox.minX) }
-        return ordered.compactMap { observation in
+        Self.readingOrder(observations).compactMap { observation in
             let characters = Array(observation.text)
             let inside = CharacterLayout.boxes(for: observation).enumerated().filter { _, box in
                 guard let overlap = box.intersection(rect), box.area > 0 else { return false }
@@ -114,6 +113,13 @@ public struct StudySelection: Sendable {
             guard let first = inside.first, let last = inside.last else { return nil }
             return SelectedSpan(observationID: observation.id, range: first..<(last + 1),
                                 text: String(characters[first...last]), lineText: observation.text)
+        }
+    }
+
+    /// Lines in reading order: top to bottom, then left to right (horizontal text).
+    public static func readingOrder(_ observations: [RecognizedTextObservation]) -> [RecognizedTextObservation] {
+        observations.sorted {
+            ($0.boundingBox.minY, $0.boundingBox.minX) < ($1.boundingBox.minY, $1.boundingBox.minX)
         }
     }
 

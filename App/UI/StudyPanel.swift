@@ -7,6 +7,9 @@ import SwiftUI
 /// the height its layout offers (the chrome region below the video); compact landscape is a bottom strip over the
 /// frozen frame capped at `VideoStageLayout.overlayStudyFraction` of the stage height, which collapses to its
 /// one-line header. Heights come from `VideoStageLayout`.
+///
+/// The navigator pad (10.8.0) steps the selection by word, line and character: inline in the header on regular and
+/// compact landscape (no extra height), its own row under the header in compact portrait.
 struct StudyPanel: View {
     let session: StudySession
     let store: (any DictionaryStore)?
@@ -24,6 +27,8 @@ struct StudyPanel: View {
 
     private var isCompact: Bool { layoutClass.isCompact }
     private var isLandscapeStrip: Bool { layoutClass == .compactLandscape }
+    /// Portrait has height to spare but not width: the pad gets its own row there.
+    private var padInHeader: Bool { layoutClass != .compactPortrait }
     private var selectedCount: Int { session.spans.reduce(0) { $0 + $1.range.count } }
     private var selectionDescription: String {
         selectedCount == 1 ? "1 character selected" : "\(selectedCount) characters selected"
@@ -32,6 +37,10 @@ struct StudyPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: isCompact ? 6 : 8) {
             header
+            if !padInHeader {
+                StudyNavigatorPad(session: session)
+                    .frame(maxWidth: .infinity)
+            }
             if !(isLandscapeStrip && collapsed) {
                 content
             }
@@ -95,23 +104,29 @@ struct StudyPanel: View {
         }
     }
 
-    /// One line on every width: icon, STUDY, selection count, then Clear, collapse (landscape) and Done, each a
-    /// 44 pt target.
+    /// One line on every width: icon, STUDY, selection count, the navigator pad (regular and landscape), then Clear,
+    /// collapse (landscape) and Done, each a 44 pt target. In the landscape strip the STUDY title gives way to the
+    /// pad on narrow phones.
     private var header: some View {
         HStack(spacing: isCompact ? 6 : 10) {
-            HStack(spacing: isCompact ? 6 : 10) {
-                PixelIcon("study", size: isCompact ? 18 : 24).foregroundStyle(K.red)
-                Text("STUDY").font(K.osd(isCompact ? 16 : 20))
-                if !isCompact { BlockMarks() }
-                Text(String(format: "SEL %02d", selectedCount))
-                    .font(K.osd(isCompact ? 12 : 13)).foregroundStyle(K.paper.opacity(0.55))
+            Group {
+                if isLandscapeStrip {
+                    ViewThatFits(in: .horizontal) {
+                        titleGroup(showsTitle: true)
+                        titleGroup(showsTitle: false)
+                    }
+                } else {
+                    titleGroup(showsTitle: true)
+                }
             }
-            .lineLimit(1)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Study")
             .accessibilityValue(selectionDescription)
             .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 4)
+            if padInHeader {
+                StudyNavigatorPad(session: session)
+            }
             if !session.spans.isEmpty {
                 Button { session.clearSelection() } label: { Text("Clear").kButtonTarget() }
                     .buttonStyle(.k(.ghost))
@@ -131,6 +146,17 @@ struct StudyPanel: View {
                 .accessibilityLabel("Done studying")
                 .accessibilityHint("Returns to the live video")
         }
+    }
+
+    private func titleGroup(showsTitle: Bool) -> some View {
+        HStack(spacing: isCompact ? 6 : 10) {
+            PixelIcon("study", size: isCompact ? 18 : 24).foregroundStyle(K.red)
+            if showsTitle { Text("STUDY").font(K.osd(isCompact ? 16 : 20)) }
+            if !isCompact { BlockMarks() }
+            Text(String(format: "SEL %02d", selectedCount))
+                .font(K.osd(isCompact ? 12 : 13)).foregroundStyle(K.paper.opacity(0.55))
+        }
+        .lineLimit(1)
     }
 
     private var content: some View {
@@ -216,7 +242,7 @@ struct StudyPanel: View {
         case .ready:
             session.japaneseObservations.isEmpty
                 ? "No Japanese found in this frame."
-                : "Tap a word, or drag over a phrase."
+                : "Tap a word, drag over a phrase, or use the arrows."
         }
     }
 
@@ -235,6 +261,84 @@ struct StudyPanel: View {
             attributed[start..<end].font = .title3.bold()
         }
         return attributed
+    }
+}
+
+/// Arrow controls for the study selection (10.8.0): ◀ ▶ word, ▲ ▼ line, − ＋ character and ＋▶ word. Each is a 44 pt
+/// `KIconButtonStyle` target, disabled (dimmed) where the step cannot move. Arrows are the pixel chevron rotated;
+/// the minus is drawn to match the pixel plus (a 14×4 bar on a 16 grid).
+///
+/// VoiceOver: the ◀ ▶ pair is one adjustable element ("Word", valued with the selection; swipe up or down to step);
+/// the other controls are labelled buttons.
+private struct StudyNavigatorPad: View {
+    let session: StudySession
+    private let iconSize: CGFloat = 18
+
+    var body: some View {
+        HStack(spacing: 6) {
+            HStack(spacing: 0) {
+                stepButton(.previousWord, label: "Previous word") { arrow(degrees: 180) }
+                stepButton(.nextWord, label: "Next word") { arrow(degrees: 0) }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Word")
+            .accessibilityValue(session.spans.isEmpty ? "None selected" : session.selectedText)
+            .accessibilityHint("Swipe up or down to select the next or previous word")
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment: session.move(.nextWord)
+                case .decrement: session.move(.previousWord)
+                @unknown default: break
+                }
+            }
+            separator
+            HStack(spacing: 0) {
+                stepButton(.previousLine, label: "Previous line") { arrow(degrees: -90) }
+                stepButton(.nextLine, label: "Next line") { arrow(degrees: 90) }
+            }
+            separator
+            HStack(spacing: 0) {
+                stepButton(.shrinkCharacter, label: "Shrink selection") { minus }
+                stepButton(.extendCharacter, label: "Extend selection") { PixelIcon("plus", size: iconSize) }
+                stepButton(.extendWord, label: "Extend selection by a word") {
+                    HStack(spacing: 1) {
+                        PixelIcon("plus", size: 10)
+                        PixelIcon("chevron", size: 14)
+                    }
+                }
+            }
+        }
+        .fixedSize()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Selection navigator")
+    }
+
+    private func stepButton<Icon: View>(_ step: StudyNavigator.Step, label: String,
+                                        @ViewBuilder icon: () -> Icon) -> some View {
+        let enabled = session.canMove(step)
+        return Button { session.move(step) } label: {
+            icon().opacity(enabled ? 1 : 0.35)
+        }
+        .buttonStyle(KIconButtonStyle())
+        .disabled(!enabled)
+        .accessibilityLabel(label)
+    }
+
+    private func arrow(degrees: Double) -> some View {
+        PixelIcon("chevron", size: iconSize).rotationEffect(.degrees(degrees))
+    }
+
+    private var minus: some View {
+        Rectangle()
+            .frame(width: iconSize * 14 / 16, height: iconSize * 4 / 16)
+            .frame(width: iconSize, height: iconSize)
+    }
+
+    private var separator: some View {
+        Rectangle()
+            .fill(K.paper.opacity(0.25))
+            .frame(width: 1, height: 24)
+            .accessibilityHidden(true)
     }
 }
 
