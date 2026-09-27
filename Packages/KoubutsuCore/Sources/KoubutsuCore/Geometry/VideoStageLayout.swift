@@ -51,6 +51,26 @@ public enum VideoStageLayout {
         }
     }
 
+    /// Compact landscape overlay chrome (10.4.0): the bars and panels never cover more than this fraction of the
+    /// stage height.
+    public static let overlayChromeFraction = 0.6
+
+    /// Panels shorter than this are not worth showing in the overlay (one 44 pt row).
+    public static let minimumOverlayPanelHeight = 44.0
+
+    /// Height the panels may share in the compact landscape overlay: `overlayChromeFraction` of the stage height
+    /// minus the bars (`barsHeight`); zero when less than `minimumOverlayPanelHeight` remains.
+    public static func overlayPanelBudget(stageHeight: Double, barsHeight: Double) -> Double {
+        let budget = stageHeight * overlayChromeFraction - barsHeight
+        return budget >= minimumOverlayPanelHeight ? budget : 0
+    }
+
+    /// Padding of the compact landscape overlay chrome: the leading, trailing and bottom safe area (the chrome is
+    /// bottom-anchored, so the top is free).
+    public static func overlayChromeInsets(safe: StageInsets) -> StageInsets {
+        StageInsets(top: 0, left: safe.left, bottom: safe.bottom, right: safe.right)
+    }
+
     /// Full container width, top-aligned, height from `aspect`; clamped (and centred horizontally) when the
     /// container is too short for full width.
     public static func stage(containerWidth: Double, containerHeight: Double,

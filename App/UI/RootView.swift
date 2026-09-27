@@ -24,6 +24,8 @@ struct RootView: View {
     /// A file source was playing when study mode froze it.
     @State var resumeAfterStudy = false
     @Environment(\.scenePhase) private var scenePhase
+    /// Compact landscape keeps revealed chrome up while VoiceOver runs (10.4.0).
+    @Environment(\.accessibilityVoiceOverEnabled) var voiceOverEnabled
 
     var showsChrome: Bool { !isFullScreen || chromeRevealed || study.isActive }
 
@@ -133,12 +135,15 @@ struct RootView: View {
     }
 
     /// The video stage placed at `stage` (container coordinates) with its tap (reveal chrome in full screen) and
-    /// press-and-hold (peek at the original) gestures. Shared by every layout.
-    func interactiveStage(_ stage: PlaneRect) -> some View {
+    /// press-and-hold (peek at the original) gestures. Shared by every layout; `onTap` replaces the default tap
+    /// handling (compact landscape, 10.4.0).
+    func interactiveStage(_ stage: PlaneRect, onTap: (() -> Void)? = nil) -> some View {
         videoStage
             .frame(width: stage.width, height: stage.height)
             .contentShape(Rectangle())
-            .onTapGesture { stageTapped() }
+            .onTapGesture {
+                if let onTap { onTap() } else { stageTapped() }
+            }
             .onLongPressGesture(minimumDuration: 0.25, maximumDistance: 30) {
                 if !study.isActive { peeking = true }
             } onPressingChanged: { pressing in

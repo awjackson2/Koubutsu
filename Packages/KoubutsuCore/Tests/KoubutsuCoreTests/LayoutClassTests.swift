@@ -46,4 +46,22 @@ struct LayoutClassTests {
         #expect(stage.x >= 59)
         #expect(stage.x + stage.width <= 852 - 59 + 1e-9)
     }
+
+    @Test func landscapeOverlayChromeCoversAtMostSixtyPercentOfTheStage() {
+        // iPhone 15 landscape stage (368 pt tall), transport bar 44 + control bar 48.
+        let budget = VideoStageLayout.overlayPanelBudget(stageHeight: 368, barsHeight: 92)
+        #expect(abs(budget - (368 * 0.6 - 92)) < 1e-9)
+        #expect(budget + 92 <= 368 * VideoStageLayout.overlayChromeFraction + 1e-9)
+    }
+
+    @Test func landscapeOverlayDropsPanelsWhenTooShort() {
+        // A very short window: the bars alone take the 60 %.
+        #expect(VideoStageLayout.overlayPanelBudget(stageHeight: 200, barsHeight: 92) == 0)
+        #expect(VideoStageLayout.overlayPanelBudget(stageHeight: 100, barsHeight: 92) == 0)
+    }
+
+    @Test func landscapeOverlayChromeIsPaddedByTheSideAndBottomSafeArea() {
+        let safe = Insets(top: 24, left: 59, bottom: 21, right: 47)
+        #expect(VideoStageLayout.overlayChromeInsets(safe: safe) == Insets(top: 0, left: 59, bottom: 21, right: 47))
+    }
 }
