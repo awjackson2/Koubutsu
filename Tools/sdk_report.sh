@@ -32,6 +32,9 @@ endsection
 
 H="$FW/AVFoundation.framework/Headers"
 section "AVCaptureDevice external type"; sed -n '466,500p' "$H/AVCaptureDevice.h"; endsection
+section "AVCaptureDevice: every mention of external devices (iPhone support, 10.1.0)"
+grep -n -i -E "external|UVC" "$H/AVCaptureDevice.h" | cut -c1-240 | head -40
+endsection
 section "AVCaptureDevice connect/disconnect notifications"; sed -n '20,45p' "$H/AVCaptureDevice.h"; endsection
 section "AVSampleBufferDisplayLayer.sampleBufferRenderer"; sed -n '290,310p' "$H/AVSampleBufferDisplayLayer.h"; endsection
 section "AVSampleBufferVideoRenderer"

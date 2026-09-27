@@ -1,11 +1,11 @@
 # Architecture
 
-Last synced: Phase 8.6.0 (2026-09-26)
+Last synced: Phase 10.1.0 (2026-09-27)
 
 ## Layers
 
 ```
-┌──────────────────────────────── App target (Koubutsu, iPadOS 26) ─────────────────────────────────┐
+┌──────────────────────────────── App target (Koubutsu, iOS/iPadOS 26) ─────────────────────────────┐
 │ UI (SwiftUI)     RootView · VideoDisplayView · VideoOverlayView (replace in place) ·                │
 │                  TranslationPanel · VideoTransportBar · DebugPanel · SettingsView                  │
 │ Composition      AppModel (@MainActor @Observable): source lifecycle, settings, hot-plug, benchmark │
@@ -20,7 +20,8 @@ Last synced: Phase 8.6.0 (2026-09-26)
 │ Media       MediaTime · HostTime · HostClock · FrameTiming · VideoSource · VideoFormat · Playback  │
 │ Pipeline    FrameSampler · LatestValueMailbox                                                      │
 │ Metrics     RateCounter · LatencyStats · PipelineMetrics                                           │
-│ Geometry    NormalizedRect/Point/Quad · CoordinateMapper · PlaneRect                               │
+│ Geometry    NormalizedRect/Point/Quad · CoordinateMapper · PlaneRect · VideoStageLayout · Layout- │
+│             Class                                                                                  │
 │ OCR         RecognizedTextObservation · OCRResult · OCRConfiguration · OCRService                  │
 │ Text        TextNormalizer · TextBlockGrouper · TextStabilizer                                     │
 │ Translation TranslationService · TranslationRequest/Context · TranslationCache ·                   │
@@ -86,6 +87,12 @@ cover other blocks' text.
 The video stage (`VideoStageLayout`) is a full-width, top-aligned 16:9 rect that depends only on the window size.
 Transport bar, panels and control bar are a bottom-anchored overlay with fixed-height panels; showing or hiding
 them never resizes or moves the video or its replacement boxes.
+
+The app runs on iPad and iPhone (10.1.0). `LayoutClass.classify(width:height:)` picks the layout from the window
+size, not the device: compact landscape when the window is under 500 pt tall, else compact portrait when under
+600 pt wide, else regular (every full-screen iPad). `RootView` publishes it as `@Environment(\.layoutClass)`.
+`VideoStageLayout.windowedInsets(for:safe:)` gives the stage insets per class: regular keeps the monitor housing;
+compact portrait has a 24 pt header and 6 pt bezels; compact landscape stays inside all safe-area edges.
 
 Full screen (`RootView.isFullScreen`) removes the chrome overlay and the status bar; a tap on the stage reveals
 the chrome for 4 s. Holding on the stage hides the replacement overlay (peek at the original). Keyboard shortcuts

@@ -31,6 +31,26 @@ public enum VideoStageLayout {
         StageInsets(top: max(safeTop, 24) + headerHeight, left: 18, bottom: 16, right: 18)
     }
 
+    /// Header strip height of the slim housing in compact portrait (10.1.0).
+    public static let compactHeaderHeight = 24.0
+
+    /// Housing insets outside full screen for `layout`. `safe` is the window's safe-area insets.
+    /// - regular: as `windowedInsets(safeTop:)`.
+    /// - compact portrait: slim header under the status bar, 6 pt bezels clear of the safe area.
+    /// - compact landscape: no header; the stage stays inside the safe area (Dynamic Island/notch, home indicator).
+    public static func windowedInsets(for layout: LayoutClass, safe: StageInsets) -> StageInsets {
+        switch layout {
+        case .regular:
+            return windowedInsets(safeTop: safe.top)
+        case .compactPortrait:
+            return StageInsets(top: max(safe.top, 20) + compactHeaderHeight, left: max(safe.left, 6),
+                               bottom: max(safe.bottom, 6), right: max(safe.right, 6))
+        case .compactLandscape:
+            return StageInsets(top: max(safe.top, 4), left: max(safe.left, 6),
+                               bottom: max(safe.bottom, 4), right: max(safe.right, 6))
+        }
+    }
+
     /// Full container width, top-aligned, height from `aspect`; clamped (and centred horizontally) when the
     /// container is too short for full width.
     public static func stage(containerWidth: Double, containerHeight: Double,

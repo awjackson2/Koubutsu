@@ -35,6 +35,7 @@ struct RootView: View {
                 : VideoStageLayout.windowedInsets(safeTop: geometry.safeAreaInsets.top)
             let stage = VideoStageLayout.framed(containerWidth: geometry.size.width,
                                                 containerHeight: geometry.size.height, insets: insets)
+            let layoutClass = LayoutClass.classify(width: geometry.size.width, height: geometry.size.height)
             ZStack(alignment: .topLeading) {
                 Color.black
                 if !isFullScreen {
@@ -62,6 +63,7 @@ struct RootView: View {
                     .transition(.opacity)
                 }
             }
+            .environment(\.layoutClass, layoutClass)
             .background { KeyboardShortcuts(model: model, actions: shortcutActions) }
             .overlay {
                 if booting {
@@ -112,6 +114,7 @@ struct RootView: View {
         }
         .task { await applyLaunchStudy() }
         .task { applyLaunchSheets() }
+        .task { applyLaunchOrientation() }
         .onChange(of: scenePhase) { _, phase in
             Task { await model.scenePhaseChanged(phase) }
         }
@@ -173,6 +176,15 @@ struct RootView: View {
         case "review": showingReview = true
         case "recent": showingRecentLines = true
         default: break
+        }
+    }
+
+    /// `--orientation=portrait|landscape` (iPhone CI screenshots).
+    private func applyLaunchOrientation() {
+        guard let name = LaunchOptions.current.orientation else { return }
+        let mask: UIInterfaceOrientationMask = name == "landscape" ? .landscapeRight : .portrait
+        for case let scene as UIWindowScene in UIApplication.shared.connectedScenes {
+            scene.requestGeometryUpdate(UIWindowScene.GeometryPreferences.iOS(interfaceOrientations: mask))
         }
     }
 

@@ -97,6 +97,8 @@ struct LaunchOptions {
     var studyTap: NormalizedPoint?
     /// Open the word card for the tapped word.
     var openCard = false
+    /// Request this interface orientation at launch: `portrait` or `landscape` (iPhone screenshots, 10.1.0).
+    var orientation: String?
 
     static let current = LaunchOptions(arguments: CommandLine.arguments)
 
@@ -118,6 +120,7 @@ struct LaunchOptions {
                 if arg.hasPrefix("--start-at=") { startAt = Double(arg.dropFirst("--start-at=".count)) }
                 if arg.hasPrefix("--study-after=") { studyAfter = Double(arg.dropFirst("--study-after=".count)) }
                 if arg == "--open-card" { openCard = true }
+                if arg.hasPrefix("--orientation=") { orientation = String(arg.dropFirst("--orientation=".count)) }
                 if arg.hasPrefix("--open=") { openSheet = String(arg.dropFirst("--open=".count)) }
                 if arg.hasPrefix("--study-tap=") {
                     let v = arg.dropFirst("--study-tap=".count).split(separator: ",").compactMap { Double($0) }
