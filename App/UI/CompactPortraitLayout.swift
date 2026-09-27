@@ -55,7 +55,8 @@ extension RootView {
                 Group {
                     panels(translationHeight: nil, recognizedHeight: nil)
                 }
-                .frame(minHeight: panelMinHeight)
+                // Only the scrolling panels take the minimum; with none showing, the deck gets the space.
+                .frame(minHeight: showsFlexiblePanel ? panelMinHeight : nil)
                 // Housing filler: the info deck when there is room (10.7.0), else the monitor housing drawn
                 // behind the chrome shows through here.
                 if !isFullScreen && !showsFlexiblePanel { portraitDeckFiller }

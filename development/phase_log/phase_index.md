@@ -83,3 +83,4 @@ Line format:
 - **Phase 10.5.0** (2026-09-27) — [plan](phase_10.5.0_plan.md) · [log](phase_10.5.0_log.md) — Study mode on compact layouts: panel fills the portrait region, collapsible 40 % strip in landscape, snapped taps on small video.
 - **Phase 10.3.1** (2026-09-27) — [log](phase_10.3.1_log.md) — Layouts read the real top safe-area inset; iPhone portrait clears the Dynamic Island.
 - **Phase 10.3.2** (2026-09-27) — [log](phase_10.3.2_log.md) — Outer layout reader stays inside the safe area (10.3.1 follow-up).
+- **Phase 10.7.0** (2026-09-27) — [plan](phase_10.7.0_plan.md) · [log](phase_10.7.0_log.md) — Portrait info deck in the empty space: live dialogue LOG, on-screen WORDS, SESSION stats.
