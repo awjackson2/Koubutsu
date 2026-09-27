@@ -2,17 +2,25 @@ import KoubutsuCore
 import SwiftUI
 
 /// The frozen frame with the recognized Japanese outlined. Tap selects a character; drag selects a region.
-/// A magnifier follows the finger. All geometry goes through `CoordinateMapper`.
+/// A magnifier follows the finger. All geometry goes through `CoordinateMapper` and `VideoStageLayout`.
+///
+/// On compact layouts (10.5.0) the frozen frame can be 375 pt wide with 5 pt glyphs: the tap/drag threshold is
+/// smaller, a tap within `VideoStageLayout.studyMinimumTapSlop(for:)` points of a line snaps to its nearest
+/// character, the loupe shrinks to fit a short video and the status line uses smaller type. Regular is unchanged.
 struct StudyView: View {
     let session: StudySession
 
     @State private var dragStart: CGPoint?
     @State private var dragLocation: CGPoint?
+    @Environment(\.layoutClass) private var layoutClass
 
     /// Movement below this is a tap.
-    private let tapTravel: CGFloat = 12
-    private let loupeSize: CGFloat = 130
+    private var tapTravel: CGFloat { CGFloat(VideoStageLayout.studyTapTravel(for: layoutClass)) }
     private let loupeZoom: CGFloat = 2.5
+
+    private func loupeSize(for size: CGSize) -> CGFloat {
+        CGFloat(VideoStageLayout.studyLoupeSize(stageHeight: Double(size.height)))
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -85,8 +93,9 @@ struct StudyView: View {
     /// Zoomed view of the image under the finger, shown above it.
     @ViewBuilder private func loupe(_ image: CGImage, size: CGSize) -> some View {
         if let point = dragLocation {
-            let center = CGPoint(x: min(max(point.x, loupeSize / 2), size.width - loupeSize / 2),
-                                 y: max(point.y - loupeSize * 0.9, loupeSize / 2))
+            let side = loupeSize(for: size)
+            let center = CGPoint(x: min(max(point.x, side / 2), size.width - side / 2),
+                                 y: max(point.y - side * 0.9, side / 2))
             ZStack {
                 frozenImage(image, size: size)
                     .scaleEffect(loupeZoom, anchor: UnitPoint(x: point.x / max(size.width, 1),
@@ -94,10 +103,10 @@ struct StudyView: View {
                     .offset(x: center.x - point.x, y: center.y - point.y)
             }
             .frame(width: size.width, height: size.height)
-            .mask(Rectangle().frame(width: loupeSize, height: loupeSize).position(center))
+            .mask(Rectangle().frame(width: side, height: side).position(center))
             .overlay(Rectangle().stroke(K.paper, lineWidth: 2)
                 .overlay(CornerTicks(length: 16).stroke(K.red, lineWidth: 3))
-                .frame(width: loupeSize, height: loupeSize).position(center))
+                .frame(width: side, height: side).position(center))
             .allowsHitTesting(false)
         }
     }
@@ -117,10 +126,21 @@ struct StudyView: View {
                 Text("\(session.japaneseObservations.count) LINES").foregroundStyle(K.paper.opacity(0.7))
             }
         }
-        .font(K.osd(20))
+        .font(K.osd(layoutClass.isCompact ? 14 : 20))
         .shadow(color: .black, radius: 0, x: 2, y: 2)
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
+    }
+
+    /// On compact layouts, a tap near a thin line moves to the centre of its nearest character (the minimum
+    /// tolerance converted to normalized units by the mapper), so `StudySession.tap(at:)` resolves it. Regular:
+    /// the minimum is zero and the point is used as tapped.
+    private func snapped(_ point: NormalizedPoint, mapper: CoordinateMapper) -> NormalizedPoint {
+        let minimum = VideoStageLayout.studyMinimumTapSlop(for: layoutClass)
+        guard minimum > 0 else { return point }
+        let slop = mapper.normalizedLength(fromView: minimum)
+        return StudySelection(observations: session.japaneseObservations)
+            .characterCentre(at: point, minimumSlopX: slop.x, minimumSlopY: slop.y) ?? point
     }
 
     private func isDrag(_ a: CGPoint, _ b: CGPoint) -> Bool {
@@ -148,7 +168,7 @@ struct StudyView: View {
                     session.select(rect: mapper.normalizedRect(fromView: rect))
                 } else if let point = mapper.normalizedPoint(fromView: PlanePoint(x: value.location.x,
                                                                                  y: value.location.y)) {
-                    session.tap(at: point)
+                    session.tap(at: snapped(point, mapper: mapper))
                 }
             }
     }

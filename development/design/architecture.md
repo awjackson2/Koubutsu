@@ -1,11 +1,11 @@
 # Architecture
 
-Last synced: Phase 8.6.0 (2026-09-26)
+Last synced: Phase 10.8.0 (2026-09-27)
 
 ## Layers
 
 ```
-┌──────────────────────────────── App target (Koubutsu, iPadOS 26) ─────────────────────────────────┐
+┌──────────────────────────────── App target (Koubutsu, iOS/iPadOS 26) ─────────────────────────────┐
 │ UI (SwiftUI)     RootView · VideoDisplayView · VideoOverlayView (replace in place) ·                │
 │                  TranslationPanel · VideoTransportBar · DebugPanel · SettingsView                  │
 │ Composition      AppModel (@MainActor @Observable): source lifecycle, settings, hot-plug, benchmark │
@@ -20,7 +20,8 @@ Last synced: Phase 8.6.0 (2026-09-26)
 │ Media       MediaTime · HostTime · HostClock · FrameTiming · VideoSource · VideoFormat · Playback  │
 │ Pipeline    FrameSampler · LatestValueMailbox                                                      │
 │ Metrics     RateCounter · LatencyStats · PipelineMetrics                                           │
-│ Geometry    NormalizedRect/Point/Quad · CoordinateMapper · PlaneRect                               │
+│ Geometry    NormalizedRect/Point/Quad · CoordinateMapper · PlaneRect · VideoStageLayout ·          │
+│             LayoutClass                                                                            │
 │ OCR         RecognizedTextObservation · OCRResult · OCRConfiguration · OCRService                  │
 │ Text        TextNormalizer · TextBlockGrouper · TextStabilizer                                     │
 │ Translation TranslationService · TranslationRequest/Context · TranslationCache ·                   │
@@ -86,6 +87,35 @@ cover other blocks' text.
 The video stage (`VideoStageLayout`) is a full-width, top-aligned 16:9 rect that depends only on the window size.
 Transport bar, panels and control bar are a bottom-anchored overlay with fixed-height panels; showing or hiding
 them never resizes or moves the video or its replacement boxes.
+
+The app runs on iPad and iPhone (10.1.0). `LayoutClass.classify(width:height:)` picks the layout from the window
+size, not the device: compact landscape when the window is under 500 pt tall, else compact portrait when under
+600 pt wide, else regular (every full-screen iPad). `RootView` publishes it as `@Environment(\.layoutClass)`.
+`VideoStageLayout.windowedInsets(for:safe:)` gives the stage insets per class: regular keeps the monitor housing;
+compact portrait has a 24 pt header and 6 pt bezels; compact landscape stays inside all safe-area edges.
+
+`RootView.body` dispatches to one layout per class (`regularLayout`, `CompactPortraitLayout.swift`,
+`CompactLandscapeLayout.swift`), composed from shared pieces (`interactiveStage`, `transportBar`, `panels`,
+`controlBar`, `studyPanel`):
+- Regular: as above (monitor housing, chrome overlaid below the stage, fixed-height panels).
+- Compact portrait (10.3.0): slim `CompactMonitorFrame` header, stage full width at the top, chrome in
+  `VideoStageLayout.chromeRegion(below:)` under the stage (never over it), panels sharing its height. Full screen
+  centres the stage (`centered`) and reveals the chrome by tap in the region below.
+- Compact landscape (10.4.0): stage at full height inside the safe area with a hairline border; chrome is an
+  overlay revealed by a tap (or the CONTROLS tab) and hidden after 4 s (not while VoiceOver runs); panels share
+  `overlayPanelBudget` (bars + panels ≤ 60 % of the stage height).
+
+Portrait info deck (10.7.0, `PortraitDeck.swift`, `PortraitDeckModel.swift`): when no scrolling panel is on and
+the gap between the bars is at least `VideoStageLayout.portraitDeckMinHeight`, it shows LOG (dialogue history),
+WORDS (`DeckWords` from `DictionaryLookup.segment` of the on-screen Japanese, debounced off the main actor) and
+SESSION (`ReadingSessionStats`, metrics meters).
+
+Study navigator (10.8.0): `StudyNavigator` (KoubutsuCore) steps the selection by word, line and character over the
+Japanese lines in reading order (words from segmentation; per-character until segmentation finishes).
+`StudySession.move(_:)` feeds the tap/drag selection paths; the pad sits in `StudyPanel`; arrow keys on iPad.
+
+Sheets (10.6.0) measure their own width (`SheetLayout`, `App/UI/SheetSupport.swift`) and stack rows below 500 pt or
+at accessibility text sizes.
 
 Full screen (`RootView.isFullScreen`) removes the chrome overlay and the status bar; a tap on the stage reveals
 the chrome for 4 s. Holding on the stage hides the replacement overlay (peek at the original). Keyboard shortcuts

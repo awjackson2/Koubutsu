@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
-# Builds the app, runs it on an iPad simulator in several configurations and saves screenshots to
+# Builds the app, runs it on an iPad or iPhone simulator in several configurations and saves screenshots to
 # build/screenshots/. Uses the demo translator because simulators have no translation models.
 set -uo pipefail
-UDID=$(xcrun simctl list devices available -j | python3 -c '
-import json, sys
+# DEVICE=iPad (default: iPad Pro 13-inch) or iPhone (newest iPhone Pro, not Max; each series in portrait and
+# landscape via --orientation, 10.1.0).
+DEVICE=${DEVICE:-iPad}
+UDID=$(xcrun simctl list devices available -j | DEVICE="$DEVICE" python3 -c '
+import json, os, re, sys
+family = os.environ["DEVICE"]
 data = json.load(sys.stdin)["devices"]
-for runtime in sorted(data, reverse=True):
-    for d in data[runtime]:
-        if d.get("isAvailable") and d["name"].startswith("iPad Pro 13-inch"):
+def wanted(name):
+    if family == "iPhone":
+        return name.startswith("iPhone") and "Pro" in name and "Max" not in name
+    return name.startswith("iPad Pro 13-inch")
+for runtime in sorted(data, key=lambda r: [int(x) for x in re.findall(r"\d+", r)], reverse=True):
+    for d in sorted(data[runtime], key=lambda d: d["name"], reverse=True):
+        if d.get("isAvailable") and wanted(d["name"]):
             print(d["udid"]); sys.exit()
+sys.exit("no %s simulator available" % family)
 ')
 echo "Simulator: ${UDID}"
 mkdir -p build/screenshots
@@ -27,13 +36,21 @@ BUNDLE=com.awjackson2.Koubutsu
 # captured repeatedly; all captures are kept.
 # SERIES (comma-separated names, optional) limits which configurations run; empty runs all of them.
 SERIES=$(echo "${SERIES:-}" | tr -d ' ')
+# iPhone runs every series twice (portrait, landscape), so it samples fewer frames per run.
+if [ "$DEVICE" = iPhone ]; then ORIENTATIONS="portrait landscape"; TIMES="20 60 76 92 108"
+else ORIENTATIONS=""; TIMES="20 60 64 68 72 76 80 84 88 92 96 100 104 108"; fi
 series() { # name, launch args...
   local name=$1; shift
   if [ -n "$SERIES" ] && [[ ",${SERIES}," != *",${name},"* ]]; then echo "skipping ${name}"; return; fi
+  if [ -z "$ORIENTATIONS" ]; then capture "$name" "$@"; return; fi
+  for o in $ORIENTATIONS; do capture "iphone_${o}_${name}" "$@" "--orientation=${o}"; done
+}
+capture() { # file prefix, launch args...
+  local name=$1; shift
   xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
   xcrun simctl launch "$UDID" "$BUNDLE" "$@" > /dev/null
   # Warm up (first Vision request loads models), then sample densely across two 24 s clip loops.
-  for t in 20 60 64 68 72 76 80 84 88 92 96 100 104 108; do
+  for t in $TIMES; do
     sleep $(( t - ${last:-0} )); last=$t
     xcrun simctl io "$UDID" screenshot "build/screenshots/${name}_t${t}s.png" > /dev/null
     if xcrun simctl spawn "$UDID" launchctl list | grep -q "$BUNDLE"; then state=running; else state=NOT-RUNNING; fi

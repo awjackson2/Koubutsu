@@ -25,8 +25,21 @@ Nothing is injected into the Switch or the game: everything works on the externa
 | Fixed video stage; full screen, English/Japanese toggle, hold-to-peek, recent lines, keyboard shortcuts | implemented, CI-built; gestures unverified on device |
 | Study mode: freeze & select, offline JMdict/KANJIDIC2 lookup with conjugation, word card, word bank, FSRS review, Anki export, furigana overlay | implemented, CI-tested; gestures unverified on device |
 | Koubutsu theme: VCR/HUD components, pixel icons, app icon, boot animation, monitor housing | implemented, CI-built; motion unverified on device |
+| iPhone: compact portrait (video on top, controls below) and landscape (full-height video, tap for controls); 44 pt targets, VoiceOver labels | implemented, CI-tested on iPhone + iPad simulators; unverified on device |
 
 ## Screenshots
+
+iPhone mode (Major 10, CI screenshots on 7e25744 / 7a8f7e2 / 3f6b578, iPhone Pro simulator, synthetic clip): portrait puts
+the video under a slim housing header with the controls below it; landscape shows the video at full height with
+controls a tap away (CONTROLS tab); study mode becomes a collapsible strip.
+
+| Portrait + info deck (LOG) | Portrait study navigator | Landscape | Landscape study |
+|---|---|---|---|
+| ![deck](docs/screenshots/iphone1070_deck_log.jpg) | ![navigator](docs/screenshots/iphone1080_study_navigator.jpg) | ![landscape](docs/screenshots/iphone1032_landscape.jpg) | ![study](docs/screenshots/iphone1050_landscape_study.jpg) |
+
+The space under the video in portrait holds an info deck: LOG (live dialogue, JP over EN), WORDS (words on screen
+with readings, meanings and word-bank state) and SESSION (reading stats, reviews due, pipeline health). Study mode
+has arrow controls: ◀ ▶ word, ▲ ▼ line, − ＋ character (hardware arrow keys on iPad).
 
 Koubutsu theme (Major 9, CI screenshots on 5223820, iPad simulator, synthetic clip): the video sits in a
 surveillance-monitor housing; VCR OSD Mono type, original pixel icons, paper sheets with HUD ticks.

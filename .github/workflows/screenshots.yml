@@ -5,12 +5,18 @@ name: Screenshots
 on:
   workflow_dispatch:
     inputs:
+      device:
+        description: "Simulator family: iPad or iPhone (iPhone captures portrait and landscape)"
+        required: false
+        default: iPad
+        type: choice
+        options: [iPad, iPhone]
       series:
         description: "Comma-separated series (panel_debug,overlay,fullscreen,study,card,furigana,settings,words,review); empty = all"
         required: false
         default: ""
 concurrency:
-  group: screenshots-${{ github.sha }}
+  group: screenshots-${{ github.sha }}-${{ inputs.device }}
   cancel-in-progress: false
 jobs:
   screenshots:
@@ -23,10 +29,11 @@ jobs:
       - name: Capture screenshots
         env:
           SERIES: ${{ inputs.series }}
+          DEVICE: ${{ inputs.device }}
         run: Tools/ci_screenshots.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: screenshots
+          name: screenshots-${{ inputs.device }}
           path: build/screenshots/
           retention-days: 14

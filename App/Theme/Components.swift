@@ -77,9 +77,13 @@ extension ButtonStyle where Self == KButtonStyle {
 }
 
 /// Icon (and optional OSD label) button for bars: flat, red when active, pressed = inverted block.
+/// The hit area is at least 44×44 pt (10.2.0); it grows outside the visible pressed block, so the look is unchanged.
 struct KIconButtonStyle: ButtonStyle {
     var active = false
     @Environment(\.kSurface) private var surface
+
+    /// Minimum touch target (Human Interface Guidelines).
+    static let minimumTarget: CGFloat = 44
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -89,12 +93,14 @@ struct KIconButtonStyle: ButtonStyle {
             .padding(.vertical, 6)
             .foregroundStyle(configuration.isPressed ? surface.background : (active ? K.red : surface.foreground))
             .background(configuration.isPressed ? surface.foreground : Color.clear)
+            .frame(minWidth: Self.minimumTarget, minHeight: Self.minimumTarget)
             .contentShape(Rectangle())
             .animation(.linear(duration: 0.05), value: configuration.isPressed)
     }
 }
 
-/// Icon + optional label, for bars.
+/// Icon + optional label, for bars. The pixel icon is decorative for VoiceOver: the title, or the button's
+/// `accessibilityLabel` for icon-only buttons, names the control (10.2.0).
 struct KIconLabel: View {
     let icon: String
     var title: String?
@@ -103,6 +109,7 @@ struct KIconLabel: View {
     var body: some View {
         HStack(spacing: 6) {
             PixelIcon(icon, size: size)
+                .accessibilityHidden(true)
             if let title { Text(title).lineLimit(1) }
         }
     }

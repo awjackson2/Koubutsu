@@ -157,6 +157,14 @@ public struct CoordinateMapper: Sendable, Hashable {
         return p
     }
 
+    /// A distance of `length` view points expressed in normalized units along each axis of the displayed video
+    /// (tap tolerances). Zero when the mapper is degenerate.
+    public func normalizedLength(fromView length: Double) -> (x: Double, y: Double) {
+        let d = displayedVideoRect
+        guard d.width > 0, d.height > 0 else { return (0, 0) }
+        return (length / d.width, length / d.height)
+    }
+
     public func normalizedRect(fromView rect: PlaneRect) -> NormalizedRect {
         let d = displayedVideoRect
         guard d.width > 0, d.height > 0 else { return .full }

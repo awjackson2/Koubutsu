@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Builds and tests the app on the newest available iPad simulator.
+# Builds and tests the app on the newest available simulator of DEVICE (iPad, default, or iPhone).
 set -euo pipefail
-UDID=$(xcrun simctl list devices available -j | python3 -c '
-import json, sys, re
+DEVICE=${DEVICE:-iPad}
+UDID=$(xcrun simctl list devices available -j | DEVICE="$DEVICE" python3 -c '
+import json, os, sys, re
+family = os.environ["DEVICE"]
 data = json.load(sys.stdin)["devices"]
 best = None
 for runtime, devices in data.items():
@@ -11,12 +13,12 @@ for runtime, devices in data.items():
         continue
     ver = (int(m.group(1)), int(m.group(2)))
     for d in devices:
-        if d.get("isAvailable") and "iPad" in d["name"]:
+        if d.get("isAvailable") and d["name"].startswith(family):
             key = (ver, "Pro" in d["name"], d["name"])
             if best is None or key > best[0]:
                 best = (key, d["udid"])
 if best is None:
-    sys.exit("no iPad simulator available")
+    sys.exit("no %s simulator available" % family)
 print(best[1], file=sys.stdout)
 print("Selected", best[0], file=sys.stderr)
 ')

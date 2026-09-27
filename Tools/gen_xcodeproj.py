@@ -62,7 +62,7 @@ COMMON_PROJECT = {
     "LOCALIZATION_PREFERS_STRING_CATALOGS": "YES",
     "SDKROOT": "iphoneos",
     "SWIFT_VERSION": "6.0",
-    "TARGETED_DEVICE_FAMILY": "2",
+    "TARGETED_DEVICE_FAMILY": "1,2",
 }
 PROJ_DEBUG = dict(COMMON_PROJECT, **{
     "DEBUG_INFORMATION_FORMAT": "dwarf",
@@ -100,6 +100,8 @@ APP = {
     "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad":
         "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight "
         "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown",
+    "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone":
+        "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight",
     "LD_RUNPATH_SEARCH_PATHS": ["$(inherited)", "@executable_path/Frameworks"],
     "MARKETING_VERSION": "0.1",
     "PRODUCT_BUNDLE_IDENTIFIER": BUNDLE_ID,
@@ -107,7 +109,7 @@ APP = {
     "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
     "SUPPORTS_MACCATALYST": "NO",
     "SWIFT_EMIT_LOC_STRINGS": "YES",
-    "TARGETED_DEVICE_FAMILY": "2",
+    "TARGETED_DEVICE_FAMILY": "1,2",
 }
 TESTS = {
     "BUNDLE_LOADER": "$(TEST_HOST)",
@@ -119,7 +121,7 @@ TESTS = {
     "PRODUCT_NAME": "$(TARGET_NAME)",
     "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
     "SWIFT_EMIT_LOC_STRINGS": "NO",
-    "TARGETED_DEVICE_FAMILY": "2",
+    "TARGETED_DEVICE_FAMILY": "1,2",
     "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/Koubutsu.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Koubutsu",
 }
 

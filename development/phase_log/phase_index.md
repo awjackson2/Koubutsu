@@ -74,3 +74,15 @@ Line format:
 - **Phase 9.4.0** (2026-09-26) — [plan](phase_9.4.0_plan.md) · [log](phase_9.4.0_log.md) — Surveillance-monitor housing around the video outside full screen.
 - **Phase 9.4.1** (2026-09-26) — [log](phase_9.4.1_log.md) — Monitor header clears the status bar; housing fills the window.
 - **Phase 9.4.2** (2026-09-27) — [log](phase_9.4.2_log.md) — Screenshot CI runs on demand only, optionally for chosen screens.
+- **Phase 10.0.0** (2026-09-27) — [plan](phase_10.0.0_plan.md) — iPhone mode umbrella: compact portrait and landscape layouts (10.1.0–10.6.0).
+- **Phase 10.1.0** (2026-09-27) — [plan](phase_10.1.0_plan.md) · [log](phase_10.1.0_log.md) — iPhone target, layout classes from window size, iPhone simulator in CI.
+- **Phase 10.2.0** (2026-09-27) — [plan](phase_10.2.0_plan.md) · [log](phase_10.2.0_log.md) — Compact control and transport bars with a More menu; 44 pt targets and VoiceOver labels everywhere.
+- **Phase 10.4.0** (2026-09-27) — [plan](phase_10.4.0_plan.md) · [log](phase_10.4.0_log.md) — Compact landscape: full-height video inside the safe area, tap-to-reveal controls, panels capped at 60 %.
+- **Phase 10.6.0** (2026-09-27) — [plan](phase_10.6.0_plan.md) · [log](phase_10.6.0_log.md) — Sheets fit iPhone widths and landscape; Dynamic Type, VoiceOver labels, 44 pt targets.
+- **Phase 10.3.0** (2026-09-27) — [plan](phase_10.3.0_plan.md) · [log](phase_10.3.0_log.md) — Compact portrait: slim housing header, video on top, bars and panels below it, never over it.
+- **Phase 10.5.0** (2026-09-27) — [plan](phase_10.5.0_plan.md) · [log](phase_10.5.0_log.md) — Study mode on compact layouts: panel fills the portrait region, collapsible 40 % strip in landscape, snapped taps on small video.
+- **Phase 10.3.1** (2026-09-27) — [log](phase_10.3.1_log.md) — Layouts read the real top safe-area inset; iPhone portrait clears the Dynamic Island.
+- **Phase 10.3.2** (2026-09-27) — [log](phase_10.3.2_log.md) — Outer layout reader stays inside the safe area (10.3.1 follow-up).
+- **Phase 10.7.0** (2026-09-27) — [plan](phase_10.7.0_plan.md) · [log](phase_10.7.0_log.md) — Portrait info deck in the empty space: live dialogue LOG, on-screen WORDS, SESSION stats.
+- **Phase 10.8.0** (2026-09-27) — [plan](phase_10.8.0_plan.md) · [log](phase_10.8.0_log.md) — Study navigator: ◀ ▶ words, ▲ ▼ lines, − ＋ characters; hardware arrow keys.
+- **Phase 10.7.1** (2026-09-27) — [log](phase_10.7.1_log.md) — PortraitDeck compile fix (shadowed helper).

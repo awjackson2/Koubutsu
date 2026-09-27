@@ -8,6 +8,11 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        device: [iPad, iPhone]
+    name: build-test (${{ matrix.device }})
     runs-on: macos-latest
     timeout-minutes: 60
     steps:
@@ -18,9 +23,11 @@ jobs:
         run: Tools/sdk_report.sh | tee sdk-report.md
       - uses: actions/upload-artifact@v4
         with:
-          name: sdk-report
+          name: sdk-report-${{ matrix.device }}
           path: sdk-report.md
-      - name: Build and test (iPad simulator)
+      - name: Build and test (${{ matrix.device }} simulator)
+        env:
+          DEVICE: ${{ matrix.device }}
         run: mkdir -p build && Tools/ci_simulator_test.sh test
       - name: Test attachments (benchmark report)
         if: always()
@@ -34,7 +41,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: xcresult
+          name: xcresult-${{ matrix.device }}
           path: build/
           retention-days: 5
 
