@@ -25,6 +25,7 @@ Nothing is injected into the Switch or the game: everything works on the externa
 | Fixed video stage; full screen, English/Japanese toggle, hold-to-peek, recent lines, keyboard shortcuts | implemented, CI-built; gestures unverified on device |
 | Study mode: freeze & select, offline JMdict/KANJIDIC2 lookup with conjugation, word card, word bank, FSRS review, Anki export, furigana overlay | implemented, CI-tested; gestures unverified on device |
 | Koubutsu theme: VCR/HUD components, pixel icons, app icon, boot animation, monitor housing | implemented, CI-built; motion unverified on device |
+| iPhone: compact portrait (video on top, controls below) and landscape (full-height video, tap for controls); 44 pt targets, VoiceOver labels | implemented, CI-tested on iPhone + iPad simulators; unverified on device |
 
 ## Screenshots
 

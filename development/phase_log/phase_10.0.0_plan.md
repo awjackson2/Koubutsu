@@ -54,29 +54,30 @@ On the smallest supported iPhone width (375 pt) and on a Pro Max, in portrait an
 ## Technical Plan
 Roadmap checklist:
 ```
-- [ ] 10.1.0 — iPhone target + layout classes: device family 1,2 and iPhone orientations; a LayoutClass in
+- [x] 10.1.0 — iPhone target + layout classes: device family 1,2 and iPhone orientations; a LayoutClass in
                KoubutsuCore (regular / compact portrait / compact landscape) chosen from window size, with stage
                insets for all four safe-area edges (Linux tests); CI builds and tests on an iPhone simulator;
                screenshot workflow gets a `device` input; baseline iPhone screenshots of the current breakage.
                iPad layout unchanged.                                         deps: none          risk: med
-- [ ] 10.2.0 — Compact control and transport bars: primary controls always visible (source, play/stop,
+- [x] 10.2.0 — Compact control and transport bars: primary controls always visible (source, play/stop,
                EN/furigana/JP, study, full screen); words, recent lines, view options and settings move into
                one overflow menu; OSD status shortens to dot + state; transport bar drops the ruler and keeps
                skip, play, scrubber and time. 44 pt hit areas and VoiceOver labels on every bar control,
                iPad included.                                                 deps: 10.1.0        risk: low
-- [ ] 10.3.0 — Compact portrait layout: video pinned to the top at full width in a slim housing (header only;
+- [x] 10.3.0 — Compact portrait layout: video pinned to the top at full width in a slim housing (header only;
                no rails or maker's plate); bars and panels stacked below the video, never over it; panels take
                the remaining height instead of fixed 150/140 pt.              deps: 10.2.0        risk: med
-- [ ] 10.4.0 — Compact landscape layout: video fills the height, positioned clear of the Dynamic Island or notch
+- [x] 10.4.0 — Compact landscape layout: video fills the height, positioned clear of the Dynamic Island or notch
                and the home indicator; bars become an overlay revealed by a tap and hidden automatically (like
                full screen today) or a side rail in the spare width, whichever the 10.1.0 baseline
                screenshots favour; panels open as an overlay.                 deps: 10.2.0        risk: high
-- [ ] 10.5.0 — Study mode on compact layouts: study panel below the video in portrait and beside it or as a
+- [x] 10.5.0 — Study mode on compact layouts: study panel below the video in portrait and beside it or as a
                sheet in landscape; the word card and furigana fit; drag selection still works on a smaller
                video.                                                         deps: 10.3.0, 10.4.0 risk: med
-- [ ] 10.6.0 — Sheets and accessibility pass: settings, word bank, review, recent lines and the word card on
+- [x] 10.6.0 — Sheets and accessibility pass: settings, word bank, review, recent lines and the word card on
                compact widths; Dynamic Type up to the accessibility sizes in the sheets; VoiceOver order and
                labels outside the bars; 44 pt targets throughout.            deps: 10.2.0        risk: low
+- [x] 10.3.1 — (Patch) layouts read the real top safe-area inset (portrait cleared the Dynamic Island)
 ```
 Minors 10.7 to 10.9 are left free for follow-ups found in on-device testing (for example thermals and battery
 during long play on iPhone, or a Picture in Picture view). These are candidates, not commitments.
