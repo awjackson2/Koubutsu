@@ -126,6 +126,7 @@ final class TranslationController {
         downloadConfiguration = nil
         isPreparingDownload = false
         downloadAttempted = true
+        backoff.reset()
         await resetService()
         await refreshAvailability()
         if let error {
@@ -211,6 +212,12 @@ final class TranslationController {
             < ($1.stable.boundingBox.minY, $1.stable.boundingBox.minX) }
     }
 
+    /// Opens after repeated provider failures so a broken provider is not asked once per line (10.7.4).
+    @ObservationIgnored private var backoff = TranslationBackoff()
+    @ObservationIgnored private var isRecheckingAvailability = false
+
+    private static func now() -> Double { Date().timeIntervalSinceReferenceDate }
+
     private func translate(_ stable: StableText) {
         guard isEnabled else { return }
         if let availability, availability != .installed {
@@ -220,6 +227,11 @@ final class TranslationController {
                 return
             }
         }
+        guard backoff.allows(at: Self.now()) else {
+            setStatus(.unavailable, for: stable)
+            history.setFailure("PAUSED AFTER REPEATED FAILURES", for: stable.id)
+            return
+        }
         let context = TranslationContext(previousDialogue: history.context(before: stable.id),
                                          screenRegion: stable.boundingBox)
         let (source, target, quality) = (sourceLanguage, targetLanguage, quality)
@@ -228,6 +240,7 @@ final class TranslationController {
                 let result = try await coordinator.translate(stable, sourceLanguage: source, targetLanguage: target,
                                                              quality: quality, context: context)
                 history.setTranslation(result.translation, provider: result.provider, for: stable.id)
+                backoff.recordSuccess()
                 // A success after a transient failure clears its notice (a missing-language notice stays until
                 // the download finishes and availability is refreshed).
                 if availability == nil || availability == .installed { statusMessage = nil }
@@ -254,10 +267,36 @@ final class TranslationController {
                     break
                 case .unavailable, .failed:
                     // Keep the reason visible: the displayed item disappears with its text, the notice does not.
-                    statusMessage = error.description
-                    history.setFailure("FAILED: " + error.description, for: stable.id)
+                    let reason = error.description
+                    history.setFailure("FAILED: " + reason, for: stable.id)
+                    if let pause = backoff.recordFailure(at: Self.now()) {
+                        statusMessage = "Translation paused for \(Int(pause)) s after repeated failures. "
+                            + "Last error: \(reason) If this persists, re-download Japanese and English in "
+                            + "Settings → Apps → Translate."
+                    } else {
+                        statusMessage = reason
+                    }
+                    // The provider's own error may not say "not installed" (e.g. TranslationErrorDomain 16 while
+                    // assets are missing): ask the documented availability API instead of guessing codes.
+                    recheckAvailabilityAfterFailure()
                 }
                 setStatus(.failed(error.description), for: stable)
+            }
+        }
+    }
+
+    /// After a provider failure: if the language pair is not actually installed, switch to that state (notice and
+    /// Download, no further per-line attempts). One check at a time.
+    private func recheckAvailabilityAfterFailure() {
+        guard !isRecheckingAvailability else { return }
+        isRecheckingAvailability = true
+        let (source, target) = (sourceLanguage, targetLanguage)
+        Task {
+            let value = await coordinator.availability(source: source, target: target)
+            isRecheckingAvailability = false
+            switch value {
+            case .needsDownload, .unsupported: apply(value)
+            case .installed, .unknown: availability = value
             }
         }
     }

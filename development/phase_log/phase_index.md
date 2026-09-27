@@ -88,3 +88,4 @@ Line format:
 - **Phase 10.7.1** (2026-09-27) — [log](phase_10.7.1_log.md) — PortraitDeck compile fix (shadowed helper).
 - **Phase 10.7.2** (2026-09-27) — [plan](phase_10.7.2_plan.md) · [log](phase_10.7.2_log.md) — Translation failures visible: notice + Download on a missing language, reasons in the LOG.
 - **Phase 10.7.3** (2026-09-27) — [plan](phase_10.7.3_plan.md) · [log](phase_10.7.3_log.md) — Download button: PREPARING state, re-triggerable, outcome always reported.
+- **Phase 10.7.4** (2026-09-27) — [plan](phase_10.7.4_plan.md) · [log](phase_10.7.4_log.md) — Translation failures recheck availability; backoff pauses a failing provider.
