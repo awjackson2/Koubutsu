@@ -10,6 +10,8 @@ public struct DialogueEntry: Sendable, Hashable, Identifiable {
     public var source: String
     public var translation: String?
     public var provider: String?
+    /// Why this line has no translation (not downloaded, unsupported, or the provider's error), for display.
+    public var failure: String?
     public var boundingBox: NormalizedRect
     public var confidence: Float
     public var firstSeenFrame: FrameTiming
@@ -54,6 +56,13 @@ public struct DialogueHistory: Sendable {
         guard let index = entries.lastIndex(where: { $0.id == id }) else { return }
         entries[index].translation = translation
         entries[index].provider = provider
+        entries[index].failure = nil
+    }
+
+    /// Records why the line `id` could not be translated. Ignored once it has a translation.
+    public mutating func setFailure(_ reason: String, for id: String) {
+        guard let index = entries.lastIndex(where: { $0.id == id }), entries[index].translation == nil else { return }
+        entries[index].failure = reason
     }
 
     /// The most recent lines before `id` (or overall), oldest first, for context-aware translation.

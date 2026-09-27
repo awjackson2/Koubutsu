@@ -63,13 +63,27 @@ final class TranslationController {
     var cacheStatistics: TranslationCache.Statistics { coordinator.cache.statistics }
 
     func refreshAvailability() async {
-        let value = await coordinator.availability(source: sourceLanguage, target: targetLanguage)
+        apply(await coordinator.availability(source: sourceLanguage, target: targetLanguage))
+    }
+
+    /// The single place availability changes, so the notice (and its Download button) always matches it —
+    /// including when a request discovers the languages are missing after startup reported them installed (10.7.2).
+    private func apply(_ value: TranslationAvailability) {
         availability = value
         switch value {
         case .installed: statusMessage = nil
         case .needsDownload: statusMessage = "Japanese → English translation needs a one-time language download."
         case .unsupported: statusMessage = "Japanese → English translation is not supported on this device."
         case .unknown(let reason): statusMessage = "Translation availability unknown: \(reason)"
+        }
+    }
+
+    /// Short reason shown in the transcript for a line without a translation.
+    private static func failureLabel(for availability: TranslationAvailability) -> String {
+        switch availability {
+        case .needsDownload: "LANGUAGE NOT DOWNLOADED"
+        case .unsupported: "NOT SUPPORTED ON THIS DEVICE"
+        case .installed, .unknown: "UNAVAILABLE"
         }
     }
 
@@ -172,6 +186,7 @@ final class TranslationController {
         if let availability, availability != .installed {
             if case .unknown = availability {} else {
                 setStatus(.unavailable, for: stable)
+                history.setFailure(Self.failureLabel(for: availability), for: stable.id)
                 return
             }
         }
@@ -183,12 +198,28 @@ final class TranslationController {
                 let result = try await coordinator.translate(stable, sourceLanguage: source, targetLanguage: target,
                                                              quality: quality, context: context)
                 history.setTranslation(result.translation, provider: result.provider, for: stable.id)
+                // A success after a transient failure clears its notice (a missing-language notice stays until
+                // the download finishes and availability is refreshed).
+                if availability == nil || availability == .installed { statusMessage = nil }
                 if setStatus(.translated(result.translation, fromCache: result.fromCache,
                                          latency: result.translationDuration), for: stable) {
                     metrics.translationDisplayed(frameHostTime: stable.firstSeenFrame.hostTime, at: clock.now())
                 }
             } catch {
-                if case .notInstalled = error { availability = .needsDownload }
+                switch error {
+                case .notInstalled:
+                    apply(.needsDownload)
+                    history.setFailure(Self.failureLabel(for: .needsDownload), for: stable.id)
+                case .unsupportedLanguagePair:
+                    apply(.unsupported)
+                    history.setFailure(Self.failureLabel(for: .unsupported), for: stable.id)
+                case .cancelled, .nothingToTranslate:
+                    break
+                case .unavailable, .failed:
+                    // Keep the reason visible: the displayed item disappears with its text, the notice does not.
+                    statusMessage = error.description
+                    history.setFailure("FAILED: " + error.description, for: stable.id)
+                }
                 setStatus(.failed(error.description), for: stable)
             }
         }

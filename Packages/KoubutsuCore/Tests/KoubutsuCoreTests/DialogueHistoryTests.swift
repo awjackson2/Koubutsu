@@ -3,6 +3,21 @@ import Testing
 @testable import KoubutsuCore
 
 struct DialogueHistoryTests {
+    @Test func failureIsRecordedAndClearedByATranslation() {
+        var history = DialogueHistory()
+        let line = stable("冒険を始めますか？")
+        history.record(line)
+        history.setFailure("LANGUAGE NOT DOWNLOADED", for: line.id)
+        #expect(history.entries[0].failure == "LANGUAGE NOT DOWNLOADED")
+        history.setTranslation("Begin the adventure?", provider: "test", for: line.id)
+        #expect(history.entries[0].translation == "Begin the adventure?")
+        #expect(history.entries[0].failure == nil)
+        history.setFailure("FAILED: late error", for: line.id)
+        #expect(history.entries[0].failure == nil)
+        history.setFailure("ignored", for: "missing-id")
+        #expect(history.entries.count == 1)
+    }
+
     @Test func recordsInOrderAndMergesRepeats() {
         var history = DialogueHistory(capacity: 3)
         let recorded = ["ここは危険だ。", "ここは危険だ。", "気をつけて。", "先に進もう。", "扉が開いた"]
