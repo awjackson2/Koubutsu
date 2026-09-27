@@ -6,12 +6,9 @@ extension RootView {
     /// width under it, and the bars and panels stacked in the region below the video, never over it. Full screen:
     /// the video centred vertically at full width; a tap reveals the same chrome in the region below it.
     /// All geometry comes from `VideoStageLayout` (rule 6).
-    func compactPortraitLayout(_ geometry: GeometryProxy) -> some View {
+    func compactPortraitLayout(_ geometry: GeometryProxy, safe: VideoStageLayout.StageInsets) -> some View {
         let width = geometry.size.width
         let height = geometry.size.height
-        let safeArea = geometry.safeAreaInsets
-        let safe = VideoStageLayout.StageInsets(top: safeArea.top, left: safeArea.leading,
-                                                bottom: safeArea.bottom, right: safeArea.trailing)
         let stage = isFullScreen
             ? VideoStageLayout.centered(containerWidth: width, containerHeight: height)
             : VideoStageLayout.framed(containerWidth: width, containerHeight: height,

@@ -7,8 +7,7 @@ extension RootView {
     /// frames it outside full screen. The bars and panels are a bottom-anchored overlay revealed by a tap on the
     /// video and hidden after 4 s (kept up while VoiceOver runs or study mode is active); while they are hidden a
     /// small OSD tab shows that controls exist. Full screen is the same minus the hairline and the tab.
-    func compactLandscapeLayout(_ geometry: GeometryProxy) -> some View {
-        let safe = Self.landscapeSafeInsets(geometry)
+    func compactLandscapeLayout(_ geometry: GeometryProxy, safe: VideoStageLayout.StageInsets) -> some View {
         let insets = VideoStageLayout.windowedInsets(for: .compactLandscape, safe: safe)
         let stage = VideoStageLayout.framed(containerWidth: geometry.size.width,
                                             containerHeight: geometry.size.height, insets: insets)
@@ -130,11 +129,4 @@ extension RootView {
     /// Bar heights used to budget the panels: 44 pt targets, plus 2 pt padding above and below on the control bar.
     private static var landscapeControlBarHeight: Double { Double(KIconButtonStyle.minimumTarget) + 4 }
     private static var landscapeTransportBarHeight: Double { Double(KIconButtonStyle.minimumTarget) }
-
-    /// The window's safe area as stage insets (leading/trailing read as left/right).
-    private static func landscapeSafeInsets(_ geometry: GeometryProxy) -> VideoStageLayout.StageInsets {
-        let safe = geometry.safeAreaInsets
-        return VideoStageLayout.StageInsets(top: Double(safe.top), left: Double(safe.leading),
-                                            bottom: Double(safe.bottom), right: Double(safe.trailing))
-    }
 }

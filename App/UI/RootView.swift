@@ -30,25 +30,33 @@ struct RootView: View {
     var showsChrome: Bool { !isFullScreen || chromeRevealed || study.isActive }
 
     var body: some View {
-        GeometryReader { geometry in
-            let layoutClass = LayoutClass.classify(width: geometry.size.width, height: geometry.size.height)
-            Group {
-                // One layout per class (10.3.0 seam): regular is the iPad layout; the compact layouts live in
-                // CompactPortraitLayout.swift and CompactLandscapeLayout.swift.
-                switch layoutClass {
-                case .regular: regularLayout(geometry)
-                case .compactPortrait: compactPortraitLayout(geometry)
-                case .compactLandscape: compactLandscapeLayout(geometry)
+        // The outer reader respects the safe area, so it reports the real status-bar / Dynamic Island inset; the
+        // inner one ignores the top safe area (the housing runs under the status bar) and so reports 0 there
+        // (10.3.1).
+        GeometryReader { window in
+            let safeTop = window.safeAreaInsets.top
+            GeometryReader { geometry in
+                let layoutClass = LayoutClass.classify(width: geometry.size.width, height: geometry.size.height)
+                let safe = windowSafeInsets(geometry, top: safeTop)
+                Group {
+                    // One layout per class (10.3.0 seam): regular is the iPad layout; the compact layouts live in
+                    // CompactPortraitLayout.swift and CompactLandscapeLayout.swift.
+                    switch layoutClass {
+                    case .regular: regularLayout(geometry, safe: safe)
+                    case .compactPortrait: compactPortraitLayout(geometry, safe: safe)
+                    case .compactLandscape: compactLandscapeLayout(geometry, safe: safe)
+                    }
+                }
+                .environment(\.layoutClass, layoutClass)
+                .background { KeyboardShortcuts(model: model, actions: shortcutActions) }
+                .overlay {
+                    if booting {
+                        BootSequenceView { withAnimation(.easeOut(duration: 0.2)) { booting = false } }
+                            .transition(.opacity)
+                    }
                 }
             }
-            .environment(\.layoutClass, layoutClass)
-            .background { KeyboardShortcuts(model: model, actions: shortcutActions) }
-            .overlay {
-                if booting {
-                    BootSequenceView { withAnimation(.easeOut(duration: 0.2)) { booting = false } }
-                        .transition(.opacity)
-                }
-            }
+            .ignoresSafeArea(edges: .top)
         }
         .background(Color.black)
         .ignoresSafeArea(edges: .top)
@@ -110,9 +118,9 @@ struct RootView: View {
 
     /// iPad: the stage depends only on the window (and full screen): chrome below overlays it and never resizes
     /// the video. Outside full screen it sits inside the monitor housing (9.4.0).
-    private func regularLayout(_ geometry: GeometryProxy) -> some View {
+    private func regularLayout(_ geometry: GeometryProxy, safe: VideoStageLayout.StageInsets) -> some View {
         let insets = isFullScreen ? VideoStageLayout.StageInsets.zero
-            : VideoStageLayout.windowedInsets(safeTop: geometry.safeAreaInsets.top)
+            : VideoStageLayout.windowedInsets(for: .regular, safe: safe)
         let stage = VideoStageLayout.framed(containerWidth: geometry.size.width,
                                             containerHeight: geometry.size.height, insets: insets)
         return ZStack(alignment: .topLeading) {
@@ -132,6 +140,14 @@ struct RootView: View {
                 .transition(.opacity)
             }
         }
+    }
+
+    /// The layout container's safe area: `top` is the window's real top inset (read outside the top-ignoring
+    /// reader); the other edges come from `geometry`, which already sits inside them (so they are usually 0).
+    func windowSafeInsets(_ geometry: GeometryProxy, top: CGFloat) -> VideoStageLayout.StageInsets {
+        let insets = geometry.safeAreaInsets
+        return VideoStageLayout.StageInsets(top: Double(top), left: Double(insets.leading),
+                                            bottom: Double(insets.bottom), right: Double(insets.trailing))
     }
 
     /// The video stage placed at `stage` (container coordinates) with its tap (reveal chrome in full screen) and
