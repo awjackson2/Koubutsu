@@ -298,8 +298,15 @@ struct RootView: View {
     // MARK: Chrome pieces, composed differently by each layout
 
     var studyPanel: some View {
+        studyPanel(overlayStageHeight: nil)
+    }
+
+    /// The study panel; compact landscape passes the stage height its strip is budgeted against (10.5.0).
+    func studyPanel(overlayStageHeight: Double?) -> some View {
         StudyPanel(session: study, store: model.dictionary.store, bank: model.wordBank,
-                   source: model.selection?.label) { Task { await toggleStudy() } }
+                   source: model.selection?.label, overlayStageHeight: overlayStageHeight) {
+            Task { await toggleStudy() }
+        }
     }
 
     var transportBar: some View {

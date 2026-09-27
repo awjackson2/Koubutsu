@@ -71,6 +71,46 @@ public enum VideoStageLayout {
         StageInsets(top: 0, left: safe.left, bottom: safe.bottom, right: safe.right)
     }
 
+    // MARK: Study mode (10.5.0)
+
+    /// Study panel height in the regular (iPad) layout.
+    public static let regularStudyPanelHeight = 210.0
+
+    /// Compact landscape: the study strip never covers more than this fraction of the stage height.
+    public static let overlayStudyFraction = 0.4
+
+    /// Height of the study strip collapsed to its one-line header (a 44 pt row plus 6 pt padding above and below).
+    public static let studyPanelCollapsedHeight = 56.0
+
+    /// Height of the compact landscape study strip over a stage `stageHeight` tall: `overlayStudyFraction` of it,
+    /// never less than the collapsed header; the collapsed header alone when `collapsed`.
+    public static func overlayStudyPanelHeight(stageHeight: Double, collapsed: Bool) -> Double {
+        guard !collapsed else { return studyPanelCollapsedHeight }
+        return max(stageHeight * overlayStudyFraction, studyPanelCollapsedHeight)
+    }
+
+    /// Largest study loupe (the iPad size).
+    public static let studyLoupeMaxSize = 130.0
+
+    /// Side of the study loupe over a frozen frame `stageHeight` tall: at most 45 % of it, so it fits above the
+    /// finger on a short video; 130 pt on every iPad stage.
+    public static func studyLoupeSize(stageHeight: Double) -> Double {
+        min(studyLoupeMaxSize, max(stageHeight, 0) * 0.45)
+    }
+
+    /// Finger travel (points) below which a study touch is a tap rather than a drag. Short words on a small
+    /// compact video are only about 10 pt wide, so compact layouts use a smaller threshold.
+    public static func studyTapTravel(for layout: LayoutClass) -> Double {
+        layout == .regular ? 12 : 8
+    }
+
+    /// Minimum distance (points) outside a recognized line at which a study tap still hits it. Zero on the iPad
+    /// (the line-height-relative slop alone applies, as before); on compact layouts glyphs can be about 5 pt tall,
+    /// so a tap within 10 pt of the line still selects its nearest character.
+    public static func studyMinimumTapSlop(for layout: LayoutClass) -> Double {
+        layout == .regular ? 0 : 10
+    }
+
     // MARK: Compact portrait (10.3.0)
 
     /// Gap between the compact portrait stage and the chrome stacked below it (clears the bezel).

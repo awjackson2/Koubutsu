@@ -59,23 +59,47 @@ public struct StudySelection: Sendable {
 
     /// The character under (or nearest to) `point` in the line containing it.
     public func character(at point: NormalizedPoint) -> SelectedSpan? {
-        var best: (span: SelectedSpan, distance: Double)?
+        character(at: point, minimumSlopX: 0, minimumSlopY: 0)
+    }
+
+    /// As `character(at:)`, with the tolerance around each line at least `minimumSlopX` / `minimumSlopY`
+    /// (normalized units, from `CoordinateMapper.normalizedLength(fromView:)`) for small glyphs on a small video
+    /// (10.5.0). With zero minimums this is exactly `character(at:)`.
+    public func character(at point: NormalizedPoint, minimumSlopX: Double, minimumSlopY: Double) -> SelectedSpan? {
+        nearest(to: point, minimumSlopX: minimumSlopX, minimumSlopY: minimumSlopY)?.span
+    }
+
+    /// Centre of the character `character(at:minimumSlopX:minimumSlopY:)` picks, or nil when no line is in reach.
+    /// The centre lies inside its line, so `character(at:)` resolves it to the same character.
+    public func characterCentre(at point: NormalizedPoint, minimumSlopX: Double,
+                                minimumSlopY: Double) -> NormalizedPoint? {
+        guard let box = nearest(to: point, minimumSlopX: minimumSlopX, minimumSlopY: minimumSlopY)?.box else {
+            return nil
+        }
+        return NormalizedPoint(x: box.midX, y: box.midY)
+    }
+
+    private func nearest(to point: NormalizedPoint, minimumSlopX: Double,
+                         minimumSlopY: Double) -> (span: SelectedSpan, box: NormalizedRect)? {
+        var best: (span: SelectedSpan, box: NormalizedRect, distance: Double)?
         for observation in observations {
             let box = observation.boundingBox
             let slop = box.height * tapSlop
-            guard point.x >= box.minX - slop, point.x <= box.maxX + slop,
-                  point.y >= box.minY - slop, point.y <= box.maxY + slop else { continue }
+            let slopX = max(slop, minimumSlopX), slopY = max(slop, minimumSlopY)
+            guard point.x >= box.minX - slopX, point.x <= box.maxX + slopX,
+                  point.y >= box.minY - slopY, point.y <= box.maxY + slopY else { continue }
             let characters = Array(observation.text)
             for (index, charBox) in CharacterLayout.boxes(for: observation).enumerated() {
                 let dx = point.x - charBox.midX, dy = point.y - charBox.midY
                 let distance = (dx * dx + dy * dy).squareRoot()
                 if best == nil || distance < best!.distance {
                     best = (SelectedSpan(observationID: observation.id, range: index..<(index + 1),
-                                         text: String(characters[index]), lineText: observation.text), distance)
+                                         text: String(characters[index]), lineText: observation.text),
+                            charBox, distance)
                 }
             }
         }
-        return best?.span
+        return best.map { ($0.span, $0.box) }
     }
 
     /// Every character whose box is mostly inside `rect`, grouped per line in reading order.
